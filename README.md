@@ -25,6 +25,7 @@ A comprehensive full-stack social media and e-commerce platform designed for gam
 ## Features
 
 ### 🎮 Core Social Features
+
 - **User Authentication**: Complete signup/login system with JWT tokens and email verification
 - **User Profiles**: Customizable profiles with bio, profile/cover images, followers/following system
 - **Posts & Feed**: Create, like, comment, and delete posts with image/video upload support
@@ -32,6 +33,7 @@ A comprehensive full-stack social media and e-commerce platform designed for gam
 - **Notifications**: Real-time notifications for likes, comments, follows, messages, and store activities
 
 ### 🛒 E-commerce Platform
+
 - **Store Management**: Users can create and manage their own stores
 - **Product Management**: Add, edit, delete products with multiple images and inventory tracking
 - **Shopping Cart**: Add to cart, update quantities, manage multiple store items
@@ -41,11 +43,13 @@ A comprehensive full-stack social media and e-commerce platform designed for gam
 - **Analytics**: Store performance analytics and sales tracking
 
 ### 🎯 Gaming Features
+
 - **Live Streams**: Share and view live gaming streams with real-time chat
 - **Arena Events**: Gaming tournaments and matchmaking system
 - **Gaming Dashboard**: Centralized hub for all gaming activities
 
 ### 🎨 UI/UX Features
+
 - **Gaming-inspired Dark Theme**: Modern purple/pink gradient design
 - **Responsive Design**: Optimized for desktop, tablet, and mobile
 - **Loading States**: Smooth loading animations and skeletons
@@ -57,6 +61,7 @@ A comprehensive full-stack social media and e-commerce platform designed for gam
 ## Tech Stack
 
 ### Backend
+
 - **Runtime**: Node.js with Express.js
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT tokens with HTTP-only cookies
@@ -67,6 +72,7 @@ A comprehensive full-stack social media and e-commerce platform designed for gam
 - **Security**: CORS, rate limiting, input validation
 
 ### Frontend
+
 - **Framework**: React 18 with Vite build tool
 - **Routing**: React Router v6 with protected routes
 - **Styling**: Tailwind CSS with custom gaming theme
@@ -77,6 +83,7 @@ A comprehensive full-stack social media and e-commerce platform designed for gam
 - **Real-time**: Socket.io client
 
 ### Infrastructure
+
 - **Media Storage**: Cloudinary for images/videos
 - **Payment Gateway**: Razorpay for transactions
 - **Email Service**: Gmail SMTP via Nodemailer
@@ -162,6 +169,7 @@ livestream/
 ## Database Models
 
 ### Core Models
+
 - **User**: Authentication, profile, social connections
 - **Post**: Social media posts with likes/comments
 - **Message**: Direct messaging system
@@ -169,6 +177,7 @@ livestream/
 - **Notification**: Real-time notifications
 
 ### E-commerce Models
+
 - **Store**: User-owned stores
 - **Product**: Store products with images, pricing, inventory
 - **Cart**: Shopping cart with multiple store support
@@ -176,6 +185,7 @@ livestream/
 - **Address**: Delivery addresses
 
 ### Features
+
 - MongoDB indexes for performance
 - Mongoose middleware for validation
 - Aggregation pipelines for analytics
@@ -186,12 +196,14 @@ livestream/
 ## Real-time Features
 
 ### Socket.io Integration
+
 - **Chat System**: Real-time messaging with typing indicators
 - **Notifications**: Live notification delivery
 - **Live Streams**: Real-time stream events
 - **User Presence**: Online/offline status tracking
 
 ### Event Types
+
 - New messages and conversations
 - User typing indicators
 - Notification delivery
@@ -203,6 +215,7 @@ livestream/
 ## Payment Integration
 
 ### Razorpay Features
+
 - Secure payment processing
 - Order creation and verification
 - Payment status tracking
@@ -210,6 +223,7 @@ livestream/
 - Multi-currency support
 
 ### Order Management
+
 - Stock validation and updates
 - Order status tracking
 - Delivery management
@@ -221,6 +235,7 @@ livestream/
 ## Backend Overview
 
 ### Architecture
+
 - **RESTful API** design with Express.js
 - **JWT Authentication** with HTTP-only cookies
 - **Role-based Access Control** for store owners
@@ -229,6 +244,7 @@ livestream/
 - **Payment Processing** with Razorpay integration
 
 ### Key Features
+
 - Input validation and sanitization
 - Error handling middleware
 - Rate limiting for API protection
@@ -241,6 +257,7 @@ livestream/
 ## Frontend Overview
 
 ### Architecture
+
 - **React 18** with functional components and hooks
 - **Context API** for global state management
 - **Protected Routes** for authenticated users
@@ -248,6 +265,7 @@ livestream/
 - **Real-time Updates** via Socket.io client
 
 ### Key Components
+
 - **Navbar**: Navigation with user menu and notifications
 - **Dashboard**: Gaming-inspired home page
 - **Profile**: User profile management with image uploads
@@ -258,6 +276,7 @@ livestream/
 - **Orders**: Order history and tracking
 
 ### State Management
+
 - **AuthContext**: User authentication and profile
 - **StoreContext**: Store management
 - **ProductContext**: Product and cart operations
@@ -268,6 +287,7 @@ livestream/
 ## Setup & Installation
 
 ### Prerequisites
+
 - Node.js (v18+)
 - MongoDB (local or Atlas)
 - Cloudinary account
@@ -275,12 +295,14 @@ livestream/
 - Gmail account for email services
 
 ### 1. Clone Repository
+
 ```bash
 git clone https://github.com/aditya-raut/livestream.git
 cd livestream
 ```
 
 ### 2. Backend Setup
+
 ```bash
 cd backend
 npm install
@@ -290,6 +312,7 @@ npm run dev
 ```
 
 ### 3. Frontend Setup
+
 ```bash
 cd client
 npm install
@@ -299,6 +322,7 @@ npm run dev
 ```
 
 ### 4. Access Application
+
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:5000`
 
@@ -307,6 +331,7 @@ npm run dev
 ## Environment Variables
 
 ### Backend (.env)
+
 ```env
 # Database
 MONGODB_URI=your_mongodb_connection_string
@@ -343,6 +368,7 @@ We welcome contributions! Please follow these steps:
 5. Open a Pull Request
 
 ### Code Style
+
 - Use ESLint configuration provided
 - Follow React best practices
 - Write meaningful commit messages
@@ -367,4 +393,3 @@ This project is licensed under the ISC License.
 - Lucide React for beautiful icons
 
 ---
-

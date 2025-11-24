@@ -283,7 +283,7 @@ export default function ProductDetail() {
       if (result.success) {
         setInWishlist(result.inWishlist);
         toast.success(
-          result.inWishlist ? "Added to wishlist!" : "Removed from wishlist!"
+          result.inWishlist ? "Added to wishlist!" : "Removed from wishlist!",
         );
       } else {
         toast.error(result.message || "Error updating wishlist");
@@ -350,8 +350,13 @@ export default function ProductDetail() {
             >
               <span className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-purple-800/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               <span className="relative flex items-center gap-2">
-                <ArrowLeft size={20} className="text-purple-400 group-hover:text-purple-300 transition-colors" />
-                <span className="font-medium group-hover:text-white transition-colors">Back</span>
+                <ArrowLeft
+                  size={20}
+                  className="text-purple-400 group-hover:text-purple-300 transition-colors"
+                />
+                <span className="font-medium group-hover:text-white transition-colors">
+                  Back
+                </span>
               </span>
             </button>
 
@@ -361,8 +366,13 @@ export default function ProductDetail() {
             >
               <span className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-purple-700/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               <span className="relative flex items-center gap-2">
-                <Store size={20} className="text-purple-400 group-hover:text-purple-200 transition-colors" />
-                <span className="font-medium group-hover:text-white transition-colors">My Store</span>
+                <Store
+                  size={20}
+                  className="text-purple-400 group-hover:text-purple-200 transition-colors"
+                />
+                <span className="font-medium group-hover:text-white transition-colors">
+                  My Store
+                </span>
               </span>
             </button>
           </div>
@@ -572,7 +582,6 @@ export default function ProductDetail() {
                   </div>
                 </div>
               ) : (
-              
                 <>
                   <h1 className="text-3xl font-bold text-white mb-4">
                     {product?.name}
@@ -709,11 +718,14 @@ export default function ProductDetail() {
                         >
                           <span className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-purple-800/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                           <span className="relative flex items-center gap-2">
-                            <ShoppingCart size={16} className="text-purple-300" />
+                            <ShoppingCart
+                              size={16}
+                              className="text-purple-300"
+                            />
                             <span>View Cart</span>
                           </span>
                         </button>
-                        
+
                         <button
                           onClick={() => navigate("/wishlist")}
                           className="group relative px-5 py-2.5 bg-gradient-to-r from-pink-900/70 to-purple-900/70 text-pink-100 rounded-lg transition-all duration-300 shadow-md hover:shadow-pink-700/30 hover:translate-y-[-2px] overflow-hidden"
@@ -724,7 +736,7 @@ export default function ProductDetail() {
                             <span>View Wishlist</span>
                           </span>
                         </button>
-                        
+
                         <button
                           onClick={() => navigate("/products")}
                           className="group relative px-5 py-2.5 bg-gradient-to-r from-blue-900/70 to-indigo-900/70 text-blue-100 rounded-lg transition-all duration-300 shadow-md hover:shadow-blue-700/30 hover:translate-y-[-2px] overflow-hidden"
@@ -745,15 +757,19 @@ export default function ProductDetail() {
 
           {/* Rating and Reviews Section - existing code */}
           <div className="bg-gray-900 border-t border-gray-700 px-8 py-10">
-            <h2 className="text-2xl font-bold text-white mb-6">Ratings & Reviews</h2>
-            
+            <h2 className="text-2xl font-bold text-white mb-6">
+              Ratings & Reviews
+            </h2>
+
             {/* Submit Rating Form */}
             {isAuthenticated && !isProductOwner && (
               <form
                 onSubmit={handleSubmitRating}
                 className="mb-8 bg-gray-800 rounded-lg p-6 border border-gray-700"
               >
-                <h3 className="text-lg font-semibold text-white mb-2">Leave a Rating</h3>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Leave a Rating
+                </h3>
                 <div className="flex items-center gap-2 mb-4">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -809,12 +825,16 @@ export default function ProductDetail() {
                             {r.rating} / 5
                           </span>
                         </div>
-                        <p className="text-gray-300 mb-2">{r.review || <span className="italic text-gray-500">No comment</span>}</p>
+                        <p className="text-gray-300 mb-2">
+                          {r.review || (
+                            <span className="italic text-gray-500">
+                              No comment
+                            </span>
+                          )}
+                        </p>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                           <MessageCircle size={14} />
-                          <span>
-                            {r.user?.name || "Anonymous"}
-                          </span>
+                          <span>{r.user?.name || "Anonymous"}</span>
                           <span>•</span>
                           <span>
                             {r.createdAt
@@ -826,7 +846,9 @@ export default function ProductDetail() {
                     ))}
                 </div>
               ) : (
-                <div className="text-gray-400 italic">No ratings yet. Be the first to rate this product!</div>
+                <div className="text-gray-400 italic">
+                  No ratings yet. Be the first to rate this product!
+                </div>
               )}
             </div>
           </div>

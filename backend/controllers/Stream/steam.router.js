@@ -10,7 +10,7 @@ export async function createStream(req, res) {
     const host = req.user._id; // Get host from authenticated user
 
     // Verify host exists
-    const hostUser = await User.findById(host).populate('followers', '_id');
+    const hostUser = await User.findById(host).populate("followers", "_id");
     if (!hostUser) {
       return res.status(404).json({ error: "Host user not found" });
     }
@@ -24,7 +24,7 @@ export async function createStream(req, res) {
       streamKey,
       streamUrl: `/live/${streamKey}`, // later CDN/RTMP linkz
       isLive: true,
-      startedAt: new Date()
+      startedAt: new Date(),
     });
 
     await newStream.save();
@@ -36,7 +36,11 @@ export async function createStream(req, res) {
 
     // Send notifications to followers about stream start
     const notificationService = getNotificationService();
-    if (notificationService && hostUser.followers && hostUser.followers.length > 0) {
+    if (
+      notificationService &&
+      hostUser.followers &&
+      hostUser.followers.length > 0
+    ) {
       for (const follower of hostUser.followers) {
         try {
           await notificationService.createNotification(
@@ -44,7 +48,7 @@ export async function createStream(req, res) {
             "STREAM_START",
             `${hostUser.username || hostUser.profile?.name} started a live stream: ${title}`,
             `/stream/${newStream._id}`,
-            host
+            host,
           );
         } catch (error) {
           console.error("Error sending stream notification:", error);
@@ -97,7 +101,10 @@ export async function getStreamById(req, res) {
 // End stream - only stream host can end
 export async function endStream(req, res) {
   try {
-    const stream = await Stream.findById(req.params.id).populate('viewers', '_id');
+    const stream = await Stream.findById(req.params.id).populate(
+      "viewers",
+      "_id",
+    );
     if (!stream) return res.status(404).json({ message: "Stream not found" });
 
     // Check if user is the host
@@ -115,7 +122,7 @@ export async function endStream(req, res) {
     const notificationService = getNotificationService();
     if (notificationService && stream.viewers && stream.viewers.length > 0) {
       const hostUser = await User.findById(stream.host);
-      
+
       for (const viewer of stream.viewers) {
         try {
           await notificationService.createNotification(
@@ -123,7 +130,7 @@ export async function endStream(req, res) {
             "GENERAL",
             `${hostUser.username || hostUser.profile?.name}'s stream has ended`,
             `/stream/${stream._id}`,
-            stream.host
+            stream.host,
           );
         } catch (error) {
           console.error("Error sending stream end notification:", error);
@@ -135,7 +142,7 @@ export async function endStream(req, res) {
         notificationService.io.to(`stream_${stream._id}`).emit("stream-ended", {
           streamId: stream._id,
           message: "Stream has ended",
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
     }
@@ -152,7 +159,10 @@ export async function joinStream(req, res) {
     const userId = req.user._id; // Get user from token
     const streamId = req.params.id;
 
-    const stream = await Stream.findById(streamId).populate('host', 'username profile');
+    const stream = await Stream.findById(streamId).populate(
+      "host",
+      "username profile",
+    );
     if (!stream) return res.status(404).json({ message: "Stream not found" });
 
     if (!stream.isLive) {
@@ -165,7 +175,10 @@ export async function joinStream(req, res) {
 
       // Notify stream host about new viewer
       const notificationService = getNotificationService();
-      if (notificationService && stream.host._id.toString() !== userId.toString()) {
+      if (
+        notificationService &&
+        stream.host._id.toString() !== userId.toString()
+      ) {
         const viewer = await User.findById(userId);
         try {
           await notificationService.createNotification(
@@ -173,7 +186,7 @@ export async function joinStream(req, res) {
             "GENERAL",
             `${viewer.username || viewer.profile?.name} joined your stream`,
             `/stream/${streamId}`,
-            userId
+            userId,
           );
         } catch (error) {
           console.error("Error sending viewer notification:", error);
@@ -240,11 +253,13 @@ export async function sendChatMessage(req, res) {
     // Emit real-time chat message to all stream viewers
     const notificationService = getNotificationService();
     if (notificationService && notificationService.io) {
-      notificationService.io.to(`stream_${streamId}`).emit("new-stream-message", {
-        streamId,
-        message: newMessage,
-        timestamp: new Date()
-      });
+      notificationService.io
+        .to(`stream_${streamId}`)
+        .emit("new-stream-message", {
+          streamId,
+          message: newMessage,
+          timestamp: new Date(),
+        });
     }
 
     res.status(201).json(newMessage);

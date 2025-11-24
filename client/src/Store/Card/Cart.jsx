@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useProduct } from "../../context/ProductContext";
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   ShoppingCart,
   Plus,
@@ -64,7 +64,10 @@ export default function Cart() {
     try {
       const result = await updateCartItem(productId, newQuantity);
       if (result.success) {
-        toast.success(result.message || "Cart updated successfully", toastConfig);
+        toast.success(
+          result.message || "Cart updated successfully",
+          toastConfig,
+        );
       } else {
         toast.error(result.message || "Failed to update cart", toastConfig);
       }
@@ -78,13 +81,16 @@ export default function Cart() {
 
   const handleRemoveItem = async (productId, productName) => {
     const confirmRemove = window.confirm(`Remove "${productName}" from cart?`);
-    
+
     if (confirmRemove) {
       setUpdating((prev) => ({ ...prev, [productId]: true }));
       try {
         const result = await removeFromCart(productId);
         if (result.success) {
-          toast.success(result.message || "Item removed from cart", toastConfig);
+          toast.success(
+            result.message || "Item removed from cart",
+            toastConfig,
+          );
         } else {
           toast.error(result.message || "Failed to remove item", toastConfig);
         }
@@ -98,13 +104,18 @@ export default function Cart() {
   };
 
   const handleClearCart = async () => {
-    const confirmClear = window.confirm("Are you sure you want to clear your entire cart? This action cannot be undone.");
-    
+    const confirmClear = window.confirm(
+      "Are you sure you want to clear your entire cart? This action cannot be undone.",
+    );
+
     if (confirmClear) {
       try {
         const result = await clearCart();
         if (result.success) {
-          toast.success(result.message || "Cart cleared successfully", toastConfig);
+          toast.success(
+            result.message || "Cart cleared successfully",
+            toastConfig,
+          );
         } else {
           toast.error(result.message || "Failed to clear cart", toastConfig);
         }
@@ -195,16 +206,15 @@ export default function Cart() {
         pauseOnHover
         theme="dark"
         toastStyle={{
-          backgroundColor: '#1f2937',
-          color: '#f3f4f6',
-          border: '1px solid #374151',
+          backgroundColor: "#1f2937",
+          color: "#f3f4f6",
+          border: "1px solid #374151",
         }}
       />
-      
+
       <div className="max-w-6xl mx-auto">
         <div className="bg-gray-800 rounded-xl border border-gray-700 shadow-2xl p-8">
           <div className="flex items-center justify-between mb-6">
-       
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate("/stores")}
@@ -212,8 +222,13 @@ export default function Cart() {
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-purple-800/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                 <span className="relative flex items-center gap-2">
-                  <ArrowLeft size={20} className="text-purple-400 group-hover:text-purple-300 transition-colors" />
-                  <span className="font-medium group-hover:text-white transition-colors">Back to Stores</span>
+                  <ArrowLeft
+                    size={20}
+                    className="text-purple-400 group-hover:text-purple-300 transition-colors"
+                  />
+                  <span className="font-medium group-hover:text-white transition-colors">
+                    Back to Stores
+                  </span>
                 </span>
               </button>
 
@@ -228,13 +243,15 @@ export default function Cart() {
               </h1>
             </div>
 
-
             <button
               onClick={handleRefreshCart}
               disabled={refreshing}
               className="flex items-center gap-2 px-3 py-2 text-purple-300 hover:text-white border border-purple-700 rounded-lg hover:bg-purple-900 transition-colors disabled:opacity-50"
             >
-              <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+              <RefreshCw
+                size={16}
+                className={refreshing ? "animate-spin" : ""}
+              />
               Refresh
             </button>
           </div>
@@ -262,7 +279,10 @@ export default function Cart() {
 
                 {cartLoading && (
                   <div className="text-center py-4">
-                    <Loader2 className="animate-spin mx-auto text-purple-400" size={24} />
+                    <Loader2
+                      className="animate-spin mx-auto text-purple-400"
+                      size={24}
+                    />
                     <p className="text-purple-300 mt-2">Updating cart...</p>
                   </div>
                 )}
@@ -403,12 +423,15 @@ export default function Cart() {
               {/* Order Summary */}
               <div className="lg:col-span-1">
                 <div className="bg-gray-900 rounded-lg shadow-md p-6 border border-purple-700 sticky top-6">
-                  <h2 className="text-xl font-semibold mb-4 text-white">Order Summary</h2>
+                  <h2 className="text-xl font-semibold mb-4 text-white">
+                    Order Summary
+                  </h2>
 
                   <div className="space-y-3 mb-4">
                     <div className="flex justify-between text-purple-300">
                       <span>
-                        Subtotal ({totalItems} item{totalItems !== 1 ? "s" : ""})
+                        Subtotal ({totalItems} item{totalItems !== 1 ? "s" : ""}
+                        )
                       </span>
                       <span className="font-medium">
                         ${formatPrice(safeCart.totalAmount)}
@@ -426,7 +449,9 @@ export default function Cart() {
 
                   <div className="border-t border-purple-700 pt-4 mb-6">
                     <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold text-white">Total</span>
+                      <span className="text-lg font-semibold text-white">
+                        Total
+                      </span>
                       <span className="text-2xl font-bold text-purple-400">
                         ${formatPrice(safeCart.totalAmount)}
                       </span>
@@ -493,7 +518,10 @@ export default function Cart() {
           ) : (
             <div className="text-center py-12">
               <div className="bg-gray-900 rounded-xl border border-gray-700 shadow-xl p-12">
-                <ShoppingCart size={64} className="mx-auto text-purple-400 mb-4" />
+                <ShoppingCart
+                  size={64}
+                  className="mx-auto text-purple-400 mb-4"
+                />
                 <h2 className="text-2xl font-semibold text-white mb-2">
                   Your cart is empty
                 </h2>

@@ -50,10 +50,14 @@ const ProfileHeader = ({
         [type === "profile" ? "profileImage" : "coverImage"]: base64,
       };
 
-      const response = await axios.put(`${backendUrl}/api/auth/profile`, updateData, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await axios.put(
+        `${backendUrl}/api/auth/profile`,
+        updateData,
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
 
       if (response.data.success) {
         const updatedUser = response.data.data;
@@ -118,7 +122,11 @@ const ProfileHeader = ({
           ...prev,
           followers: res.data.followersCount,
         }));
-        toast.success(res.data.followed ? "Successfully followed!" : "Successfully unfollowed!");
+        toast.success(
+          res.data.followed
+            ? "Successfully followed!"
+            : "Successfully unfollowed!",
+        );
       }
     } catch (err) {
       toast.error("Failed to follow/unfollow");
@@ -215,8 +223,8 @@ const ProfileHeader = ({
                   <button
                     onClick={handleFollow}
                     className={`absolute bottom-0 right-0 px-4 py-2 rounded-full shadow-lg text-white font-semibold transition-all transform hover:scale-105 border-2 border-gray-800 ${
-                      isFollowing 
-                        ? "bg-red-600 hover:bg-red-700" 
+                      isFollowing
+                        ? "bg-red-600 hover:bg-red-700"
                         : "bg-blue-600 hover:bg-blue-700"
                     } ${followLoading ? "opacity-60 cursor-not-allowed" : ""}`}
                     disabled={followLoading}

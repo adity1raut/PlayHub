@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Search, ChevronLeft, ChevronRight, Store, Heart, User, ShoppingCart } from "lucide-react";
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Store,
+  Heart,
+  User,
+  ShoppingCart,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../../context/StoreContext";
 import { useAuth } from "../../context/AuthContext";

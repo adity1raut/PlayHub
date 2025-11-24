@@ -27,7 +27,7 @@ export function StoreProvider({ children }) {
   const getAllStores = async (params = {}) => {
     setLoading(true);
     try {
-  const res = await axios.get(`${backendUrl}/api/stores`, { params });
+      const res = await axios.get(`${backendUrl}/api/stores`, { params });
       setStores(res.data.stores || []);
       return res.data;
     } catch (error) {
@@ -41,7 +41,7 @@ export function StoreProvider({ children }) {
 
   const getStoreById = async (id) => {
     try {
-  const res = await axios.get(`${backendUrl}/api/stores/${id}`);
+      const res = await axios.get(`${backendUrl}/api/stores/${id}`);
       return res.data;
     } catch (error) {
       console.error("Error fetching store:", error);
@@ -135,7 +135,9 @@ export function StoreProvider({ children }) {
   const deleteStore = async (id) => {
     try {
       setLoading(true);
-  await axios.delete(`${backendUrl}/api/stores/${id}`, { withCredentials: true });
+      await axios.delete(`${backendUrl}/api/stores/${id}`, {
+        withCredentials: true,
+      });
       setUserStore(null);
       return { success: true };
     } catch (error) {
@@ -170,7 +172,7 @@ export function StoreProvider({ children }) {
 
   const getUserStore = async (userId) => {
     try {
-  const res = await axios.get(`${backendUrl}/api/stores/user/${userId}`);
+      const res = await axios.get(`${backendUrl}/api/stores/user/${userId}`);
       return { success: true, data: res.data };
     } catch (error) {
       console.error("Error fetching user store:", error);
@@ -181,7 +183,9 @@ export function StoreProvider({ children }) {
 
   const getStoreProducts = async (id, params = {}) => {
     try {
-  const res = await axios.get(`${backendUrl}/api/stores/${id}/products`, { params });
+      const res = await axios.get(`${backendUrl}/api/stores/${id}/products`, {
+        params,
+      });
       return { success: true, data: res.data };
     } catch (error) {
       console.error("Error fetching store products:", error);
@@ -197,9 +201,12 @@ export function StoreProvider({ children }) {
     }
     setLoading(true);
     try {
-      const res = await axios.get(`${backendUrl}/api/stores/${storeId}/analytics`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${backendUrl}/api/stores/${storeId}/analytics`,
+        {
+          withCredentials: true,
+        },
+      );
       return { success: true, data: res.data };
     } catch (error) {
       console.error("Error fetching analytics:", error);
@@ -241,9 +248,12 @@ export function StoreProvider({ children }) {
   const getFollowStatus = async (storeId) => {
     if (!isAuthenticated) return { following: false };
     try {
-      const res = await axios.get(`${backendUrl}/api/stores/${storeId}/follow-status`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${backendUrl}/api/stores/${storeId}/follow-status`,
+        {
+          withCredentials: true,
+        },
+      );
       return { success: true, data: res.data };
     } catch (error) {
       console.error("Error getting follow status:", error);
@@ -272,7 +282,9 @@ export function StoreProvider({ children }) {
   // Search Functions
   const searchProducts = async (params = {}) => {
     try {
-  const res = await axios.get(`${backendUrl}/api/stores/search/products`, { params });
+      const res = await axios.get(`${backendUrl}/api/stores/search/products`, {
+        params,
+      });
       return { success: true, data: res.data };
     } catch (error) {
       console.error("Error searching products:", error);
@@ -283,7 +295,10 @@ export function StoreProvider({ children }) {
 
   const getTrendingProducts = async (params = {}) => {
     try {
-  const res = await axios.get(`${backendUrl}/api/stores/trending/products`, { params });
+      const res = await axios.get(
+        `${backendUrl}/api/stores/trending/products`,
+        { params },
+      );
       return { success: true, data: res.data };
     } catch (error) {
       console.error("Error fetching trending products:", error);

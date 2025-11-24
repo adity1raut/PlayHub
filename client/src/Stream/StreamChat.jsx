@@ -48,9 +48,12 @@ const StreamChat = ({
     setLoading(true);
 
     try {
-      const response = await axios.post(`${backendUrl}/api/stream/${streamId}/chat`, {
-        message: currentMessage,
-      });
+      const response = await axios.post(
+        `${backendUrl}/api/stream/${streamId}/chat`,
+        {
+          message: currentMessage,
+        },
+      );
 
       if (response.status === 201) {
         // Replace temp message with real one
@@ -120,7 +123,9 @@ const StreamChat = ({
             <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
               <MessageCircle size={32} className="mx-auto mb-3 text-gray-600" />
               <p className="text-sm text-gray-300 mb-1">No messages yet</p>
-              <p className="text-xs text-gray-500">Be the first to say something!</p>
+              <p className="text-xs text-gray-500">
+                Be the first to say something!
+              </p>
             </div>
           </div>
         ) : (
@@ -203,13 +208,17 @@ const StreamChat = ({
           </div>
         ) : (
           <div className="text-center bg-gray-700/50 rounded-lg border border-gray-600 py-4">
-            <p className="text-sm text-gray-400">Stream has ended. Chat is disabled.</p>
+            <p className="text-sm text-gray-400">
+              Stream has ended. Chat is disabled.
+            </p>
           </div>
         )}
 
         {message.length > 450 && (
           <div className="text-xs text-gray-500 mt-2 text-right">
-            <span className={`${message.length > 480 ? 'text-red-400' : 'text-yellow-400'}`}>
+            <span
+              className={`${message.length > 480 ? "text-red-400" : "text-yellow-400"}`}
+            >
               {message.length}/500 characters
             </span>
           </div>

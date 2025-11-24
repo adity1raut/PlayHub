@@ -59,7 +59,8 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
-      const errorMessage = error.response?.data?.message || "Failed to load profile";
+      const errorMessage =
+        error.response?.data?.message || "Failed to load profile";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -85,8 +86,8 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="bg-gradient-to-br from-gray-900 via-black to-purple-900 min-h-screen flex items-center justify-center">
-        <ToastContainer 
-          position="top-right" 
+        <ToastContainer
+          position="top-right"
           autoClose={3000}
           hideProgressBar={false}
           newestOnTop={false}
@@ -99,8 +100,12 @@ export default function ProfilePage() {
         />
         <div className="bg-gray-800 rounded-xl border border-gray-700 shadow-2xl p-8 max-w-md mx-auto text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-white mb-2">Loading Profile</h2>
-          <p className="text-gray-400">Please wait while we fetch the profile data...</p>
+          <h2 className="text-xl font-semibold text-white mb-2">
+            Loading Profile
+          </h2>
+          <p className="text-gray-400">
+            Please wait while we fetch the profile data...
+          </p>
         </div>
       </div>
     );
@@ -109,8 +114,8 @@ export default function ProfilePage() {
   if (error && !profileData) {
     return (
       <div className="bg-gradient-to-br from-gray-900 via-black to-purple-900 min-h-screen flex items-center justify-center p-4">
-        <ToastContainer 
-          position="top-right" 
+        <ToastContainer
+          position="top-right"
           autoClose={3000}
           hideProgressBar={false}
           newestOnTop={false}
@@ -123,7 +128,9 @@ export default function ProfilePage() {
         />
         <div className="bg-red-900/30 border border-red-700 rounded-xl shadow-2xl p-8 max-w-md mx-auto text-center">
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-red-400 mb-4">Error Loading Profile</h2>
+          <h2 className="text-2xl font-bold text-red-400 mb-4">
+            Error Loading Profile
+          </h2>
           <p className="text-red-300 mb-6">{error}</p>
           <div className="flex gap-3 justify-center">
             <button
@@ -147,8 +154,8 @@ export default function ProfilePage() {
   if (!profileData) {
     return (
       <div className="bg-gradient-to-br from-gray-900 via-black to-purple-900 min-h-screen flex items-center justify-center p-4">
-        <ToastContainer 
-          position="top-right" 
+        <ToastContainer
+          position="top-right"
           autoClose={3000}
           hideProgressBar={false}
           newestOnTop={false}
@@ -178,11 +185,10 @@ export default function ProfilePage() {
 
   return (
     <div className="bg-gradient-to-br from-gray-900 via-black to-purple-900 min-h-screen">
-
       <GamingBackground />
-      
-      <ToastContainer 
-        position="top-right" 
+
+      <ToastContainer
+        position="top-right"
         autoClose={3000}
         hideProgressBar={false}
         newestOnTop={false}

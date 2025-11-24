@@ -16,9 +16,12 @@ function UserPostsList({ username }) {
       setLoading(true);
       setError("");
       try {
-        const res = await axios.get(`${backendUrl}/api/auth/profile/${username}/posts`, {
-          withCredentials: true,
-        });
+        const res = await axios.get(
+          `${backendUrl}/api/auth/profile/${username}/posts`,
+          {
+            withCredentials: true,
+          },
+        );
         if (res.data.success) {
           setPosts(res.data.data);
         } else {
@@ -77,7 +80,7 @@ function UserPostsList({ username }) {
               {post.content}
             </p>
           </div>
-          
+
           {post.media?.url && (
             <div className="mb-4">
               {post.media.type === "image" ? (
@@ -98,10 +101,10 @@ function UserPostsList({ username }) {
 
           <div className="flex items-center justify-between">
             <div className="text-xs text-gray-500">
-              {new Date(post.createdAt).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
+              {new Date(post.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
               })}
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -126,9 +129,12 @@ function FollowersList({ username }) {
       setLoading(true);
       setError("");
       try {
-        const res = await axios.get(`${backendUrl}/api/auth/profile/${username}/followers`, {
-          withCredentials: true,
-        });
+        const res = await axios.get(
+          `${backendUrl}/api/auth/profile/${username}/followers`,
+          {
+            withCredentials: true,
+          },
+        );
         if (res.data.success) {
           setFollowers(res.data.data);
         } else {
@@ -224,9 +230,12 @@ function FollowingList({ username }) {
       setLoading(true);
       setError("");
       try {
-        const res = await axios.get(`${backendUrl}/api/auth/profile/${username}/following`, {
-          withCredentials: true,
-        });
+        const res = await axios.get(
+          `${backendUrl}/api/auth/profile/${username}/following`,
+          {
+            withCredentials: true,
+          },
+        );
         if (res.data.success) {
           setFollowing(res.data.data);
         } else {

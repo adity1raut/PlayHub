@@ -3,7 +3,15 @@ import CreatePost from "./CreatePost";
 import Post from "./PostCard";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
-import { MessageCircle, RefreshCw, PlusCircle, User, Heart, ShoppingCart, FileText } from "lucide-react";
+import {
+  MessageCircle,
+  RefreshCw,
+  PlusCircle,
+  User,
+  Heart,
+  ShoppingCart,
+  FileText,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -23,9 +31,12 @@ const Feed = () => {
     try {
       if (pageNum > 1) setLoadingMore(true);
 
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/posts/feed?page=${pageNum}&limit=10`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/posts/feed?page=${pageNum}&limit=10`,
+        {
+          withCredentials: true,
+        },
+      );
 
       if (res.data.success) {
         if (append) {
@@ -132,8 +143,8 @@ const Feed = () => {
   return (
     <div className="bg-gradient-to-br from-gray-900 via-black to-purple-900 min-h-screen p-4 pt-32">
       <GamingBackground />
-      <ToastContainer 
-        position="top-right" 
+      <ToastContainer
+        position="top-right"
         autoClose={3000}
         hideProgressBar={false}
         newestOnTop={false}
@@ -144,7 +155,7 @@ const Feed = () => {
         pauseOnHover
         theme="dark"
       />
-      
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Header */}
         <div className="mb-8">
@@ -236,7 +247,9 @@ const Feed = () => {
           >
             <span className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-purple-700/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             <span className="relative flex items-center gap-2">
-              <RefreshCw className={`w-4 h-4 text-purple-400 group-hover:text-purple-200 transition-colors ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-4 h-4 text-purple-400 group-hover:text-purple-200 transition-colors ${refreshing ? "animate-spin" : ""}`}
+              />
               <span className="font-medium group-hover:text-white transition-colors">
                 {refreshing ? "Refreshing..." : "Refresh"}
               </span>
@@ -290,7 +303,8 @@ const Feed = () => {
                 </p>
                 <div className="bg-gradient-to-r from-purple-900/40 to-purple-800/40 rounded-lg p-4 border border-purple-700/50">
                   <p className="text-purple-300 text-sm">
-                    💡 <strong>Tip:</strong> Create your first post above to get started!
+                    💡 <strong>Tip:</strong> Create your first post above to get
+                    started!
                   </p>
                 </div>
               </div>

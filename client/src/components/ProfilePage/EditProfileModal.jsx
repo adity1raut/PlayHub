@@ -31,10 +31,14 @@ const EditProfileModal = ({
         bio: editForm.bio.trim(),
       };
 
-      const response = await axios.put(`${backendUrl}/api/auth/profile`, updateData, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await axios.put(
+        `${backendUrl}/api/auth/profile`,
+        updateData,
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
 
       if (response.data.success) {
         const updatedUser = response.data.data;

@@ -22,7 +22,9 @@ const StreamAnalytics = ({ streamId, isOpen, onClose }) => {
     setError(null);
 
     try {
-  const response = await axios.get(`${backendUrl}/api/stream/${streamId}/analytics`);
+      const response = await axios.get(
+        `${backendUrl}/api/stream/${streamId}/analytics`,
+      );
       if (response.status === 200) {
         setAnalytics(response.data);
       }

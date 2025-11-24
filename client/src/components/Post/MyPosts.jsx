@@ -3,17 +3,17 @@ import Post from "./PostCard";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { 
-  FileText, 
-  ArrowLeft, 
-  RefreshCw, 
-  User, 
+import {
+  FileText,
+  ArrowLeft,
+  RefreshCw,
+  User,
   MessageCircle,
   Heart,
   ShoppingCart,
   Store,
   Grid3X3,
-  List
+  List,
 } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -25,18 +25,21 @@ const MyPosts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list'
   const navigate = useNavigate();
 
   const fetchMyPosts = async () => {
     if (!isAuthenticated || !user?.username) return;
-    
+
     setLoading(true);
     setError("");
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/posts/user/${user.username}`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/posts/user/${user.username}`,
+        {
+          withCredentials: true,
+        },
+      );
       if (res.data.success) {
         setPosts(res.data.posts || res.data.data || []);
       } else {
@@ -124,8 +127,8 @@ const MyPosts = () => {
   return (
     <div className="bg-gradient-to-br from-gray-900 via-black to-purple-900 min-h-screen p-4 pt-32">
       <GamingBackground />
-      <ToastContainer 
-        position="top-right" 
+      <ToastContainer
+        position="top-right"
         autoClose={3000}
         hideProgressBar={false}
         newestOnTop={false}
@@ -136,7 +139,7 @@ const MyPosts = () => {
         pauseOnHover
         theme="dark"
       />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Header */}
         <div className="mb-8">
@@ -162,8 +165,13 @@ const MyPosts = () => {
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-purple-800/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                   <span className="relative flex items-center gap-2">
-                    <ArrowLeft size={20} className="text-purple-400 group-hover:text-purple-300 transition-colors" />
-                    <span className="font-medium group-hover:text-white transition-colors">Back to Feed</span>
+                    <ArrowLeft
+                      size={20}
+                      className="text-purple-400 group-hover:text-purple-300 transition-colors"
+                    />
+                    <span className="font-medium group-hover:text-white transition-colors">
+                      Back to Feed
+                    </span>
                   </span>
                 </button>
 
@@ -171,21 +179,21 @@ const MyPosts = () => {
                   {/* View Mode Toggle */}
                   <div className="flex items-center bg-gray-700 rounded-lg p-1 border border-gray-600">
                     <button
-                      onClick={() => setViewMode('grid')}
+                      onClick={() => setViewMode("grid")}
                       className={`p-2 rounded-md transition-all duration-300 ${
-                        viewMode === 'grid'
-                          ? 'bg-purple-600 text-white shadow-lg'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                        viewMode === "grid"
+                          ? "bg-purple-600 text-white shadow-lg"
+                          : "text-gray-400 hover:text-white hover:bg-gray-600"
                       }`}
                     >
                       <Grid3X3 size={18} />
                     </button>
                     <button
-                      onClick={() => setViewMode('list')}
+                      onClick={() => setViewMode("list")}
                       className={`p-2 rounded-md transition-all duration-300 ${
-                        viewMode === 'list'
-                          ? 'bg-purple-600 text-white shadow-lg'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                        viewMode === "list"
+                          ? "bg-purple-600 text-white shadow-lg"
+                          : "text-gray-400 hover:text-white hover:bg-gray-600"
                       }`}
                     >
                       <List size={18} />
@@ -199,7 +207,9 @@ const MyPosts = () => {
                   >
                     <span className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-purple-700/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                     <span className="relative flex items-center gap-2">
-                      <RefreshCw className={`w-4 h-4 text-purple-400 group-hover:text-purple-200 transition-colors ${refreshing ? 'animate-spin' : ''}`} />
+                      <RefreshCw
+                        className={`w-4 h-4 text-purple-400 group-hover:text-purple-200 transition-colors ${refreshing ? "animate-spin" : ""}`}
+                      />
                       <span className="font-medium group-hover:text-white transition-colors">
                         {refreshing ? "Refreshing..." : "Refresh"}
                       </span>
@@ -259,7 +269,11 @@ const MyPosts = () => {
         </div>
 
         {/* Posts Section */}
-        <div className={viewMode === 'grid' ? 'max-w-7xl mx-auto' : 'max-w-2xl mx-auto'}>
+        <div
+          className={
+            viewMode === "grid" ? "max-w-7xl mx-auto" : "max-w-2xl mx-auto"
+          }
+        >
           {/* Posts Stats */}
           <div className="bg-gray-800 rounded-xl border border-gray-700 shadow-xl p-6 mb-6">
             <div className="flex items-center justify-between">
@@ -279,13 +293,13 @@ const MyPosts = () => {
                   <h3 className="font-semibold text-white">
                     {user?.profile?.name || user?.username}
                   </h3>
-                  <p className="text-sm text-gray-400">
-                    @{user?.username}
-                  </p>
+                  <p className="text-sm text-gray-400">@{user?.username}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-purple-400">{posts.length}</p>
+                <p className="text-2xl font-bold text-purple-400">
+                  {posts.length}
+                </p>
                 <p className="text-sm text-gray-400">Posts</p>
               </div>
             </div>
@@ -308,13 +322,18 @@ const MyPosts = () => {
 
           {/* Posts List/Grid */}
           {posts.length > 0 ? (
-            <div className={
-              viewMode === 'grid' 
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
-                : 'space-y-6'
-            }>
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  : "space-y-6"
+              }
+            >
               {posts.map((post) => (
-                <div key={post._id} className={viewMode === 'grid' ? 'h-fit' : ''}>
+                <div
+                  key={post._id}
+                  className={viewMode === "grid" ? "h-fit" : ""}
+                >
                   <Post post={post} onDelete={handleDeletePost} />
                 </div>
               ))}
@@ -328,7 +347,8 @@ const MyPosts = () => {
                     No posts yet
                   </h3>
                   <p className="text-gray-500 mb-4">
-                    You haven't created any posts yet. Start sharing your thoughts!
+                    You haven't created any posts yet. Start sharing your
+                    thoughts!
                   </p>
                   <button
                     onClick={() => navigate("/post")}

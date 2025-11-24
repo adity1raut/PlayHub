@@ -124,16 +124,19 @@ const Post = ({ post, onUpdate, onDelete }) => {
           autoClose: false,
           closeOnClick: false,
           draggable: false,
-        }
+        },
       );
     };
 
     const performDelete = async () => {
       setIsDeleting(true);
       try {
-        const res = await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${post._id}`, {
-          withCredentials: true,
-        });
+        const res = await axios.delete(
+          `${import.meta.env.VITE_BACKEND_URL}/api/posts/${post._id}`,
+          {
+            withCredentials: true,
+          },
+        );
 
         if (res.data.success && onDelete) {
           onDelete(post._id);
@@ -189,27 +192,27 @@ const Post = ({ post, onUpdate, onDelete }) => {
 
   const shareToTwitter = () => {
     const postUrl = `${window.location.origin}/posts/${post._id}`;
-    const text = `Check out this post by ${post.author?.username}: ${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}`;
+    const text = `Check out this post by ${post.author?.username}: ${post.content.substring(0, 100)}${post.content.length > 100 ? "..." : ""}`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(postUrl)}`;
-    window.open(twitterUrl, '_blank');
+    window.open(twitterUrl, "_blank");
     setShowShareMenu(false);
     toast.success("Opening Twitter share...");
   };
 
   const shareToWhatsApp = () => {
     const postUrl = `${window.location.origin}/posts/${post._id}`;
-    const text = `Check out this post: ${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''} ${postUrl}`;
+    const text = `Check out this post: ${post.content.substring(0, 100)}${post.content.length > 100 ? "..." : ""} ${postUrl}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(whatsappUrl, '_blank');
+    window.open(whatsappUrl, "_blank");
     setShowShareMenu(false);
     toast.success("Opening WhatsApp share...");
   };
 
   const shareToTelegram = () => {
     const postUrl = `${window.location.origin}/posts/${post._id}`;
-    const text = `Check out this post: ${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}`;
+    const text = `Check out this post: ${post.content.substring(0, 100)}${post.content.length > 100 ? "..." : ""}`;
     const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(text)}`;
-    window.open(telegramUrl, '_blank');
+    window.open(telegramUrl, "_blank");
     setShowShareMenu(false);
     toast.success("Opening Telegram share...");
   };
@@ -220,14 +223,16 @@ const Post = ({ post, onUpdate, onDelete }) => {
         const postUrl = `${window.location.origin}/posts/${post._id}`;
         await navigator.share({
           title: `Post by ${post.author?.username}`,
-          text: post.content.substring(0, 100) + (post.content.length > 100 ? '...' : ''),
+          text:
+            post.content.substring(0, 100) +
+            (post.content.length > 100 ? "..." : ""),
           url: postUrl,
         });
         setShowShareMenu(false);
         toast.success("Shared successfully!");
       } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Error sharing:', error);
+        if (error.name !== "AbortError") {
+          console.error("Error sharing:", error);
           toast.error("Failed to share");
         }
       }

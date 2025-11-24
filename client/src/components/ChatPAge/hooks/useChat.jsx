@@ -9,9 +9,12 @@ const useChat = (socket) => {
   // Fetch conversations
   const fetchConversations = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/chat/conversations`, {
-        withCredentials: true,
-      });
+      const response = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/chat/conversations`,
+        {
+          withCredentials: true,
+        },
+      );
       if (response.data.success) {
         setConversations(response.data.conversations);
       }

@@ -64,7 +64,7 @@ const ForgetPassword = () => {
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/auth/send-reset-otp`,
         { identifier: formData.identifier },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { "Content-Type": "application/json" } },
       );
 
       if (res.data.success) {
@@ -88,7 +88,7 @@ const ForgetPassword = () => {
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/auth/resend-reset-otp`,
         { identifier: formData.identifier },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { "Content-Type": "application/json" } },
       );
 
       if (res.data.success) {
@@ -119,7 +119,7 @@ const ForgetPassword = () => {
           identifier: formData.identifier,
           otp: formData.otp,
         },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { "Content-Type": "application/json" } },
       );
 
       if (res.data.success) {
@@ -160,7 +160,7 @@ const ForgetPassword = () => {
           identifier: formData.identifier,
           newPassword: formData.newPassword,
         },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { "Content-Type": "application/json" } },
       );
 
       if (res.data.success) {
@@ -210,9 +210,7 @@ const ForgetPassword = () => {
         <div className="mx-auto w-16 h-16 bg-purple-900 rounded-full flex items-center justify-center mb-4 border border-purple-600">
           <Mail className="w-8 h-8 text-purple-400" />
         </div>
-        <h2 className="text-3xl font-bold text-white mb-2">
-          Forgot Password?
-        </h2>
+        <h2 className="text-3xl font-bold text-white mb-2">Forgot Password?</h2>
         <p className="text-gray-400">
           No worries! Enter your email or username and we'll send you an OTP to
           reset your password.
@@ -457,7 +455,9 @@ const ForgetPassword = () => {
         <button
           onClick={resetPassword}
           disabled={
-            buttonLoading.resetPassword || !formData.newPassword || !formData.confirmPassword
+            buttonLoading.resetPassword ||
+            !formData.newPassword ||
+            !formData.confirmPassword
           }
           className={`w-full py-3 px-4 rounded-lg focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all font-medium tracking-wide transform ${
             buttonLoading.resetPassword

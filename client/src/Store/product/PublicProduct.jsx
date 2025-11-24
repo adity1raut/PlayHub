@@ -3,13 +3,7 @@ import { useStore } from "../../context/StoreContext";
 import axios from "axios";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
-import {
-  Search,
-  Filter,
-  Grid,
-  List,
-  Package,
-} from "lucide-react";
+import { Search, Filter, Grid, List, Package } from "lucide-react";
 import ProductCard from "../search/ProductCard"; //
 import GamingBackground from "../../GamingBackground/GamingBackground";
 
@@ -49,15 +43,20 @@ export default function PublicProducts() {
 
       const allProducts = [];
       if (selectedStore) {
-        const res = await axios.get(`${backendUrl}/api/stores/${selectedStore}/products`, {
-          params,
-        });
+        const res = await axios.get(
+          `${backendUrl}/api/stores/${selectedStore}/products`,
+          {
+            params,
+          },
+        );
         if (res.data.products) {
           allProducts.push(...res.data.products);
         }
       } else {
         const storePromises = stores.map((store) =>
-          axios.get(`${backendUrl}/api/stores/${store._id}/products`, { params }),
+          axios.get(`${backendUrl}/api/stores/${store._id}/products`, {
+            params,
+          }),
         );
         const storeResponses = await Promise.all(storePromises);
         storeResponses.forEach((res) => {

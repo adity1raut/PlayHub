@@ -217,11 +217,14 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
 
     const interval = setInterval(async () => {
       try {
-        const response = await axios.get(`${backendUrl}/api/stream/${stream._id}`, {
-          headers: isAuthenticated
-            ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
-            : {},
-        });
+        const response = await axios.get(
+          `${backendUrl}/api/stream/${stream._id}`,
+          {
+            headers: isAuthenticated
+              ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+              : {},
+          },
+        );
         if (response.status === 200) {
           setStream(response.data);
           setViewerCount(response.data.viewers?.length || 0);

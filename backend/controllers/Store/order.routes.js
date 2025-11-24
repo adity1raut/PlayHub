@@ -4,17 +4,17 @@ import Cart from "../../models/Cart.models.js";
 import Product from "../../models/Product.models.js";
 import User from "../../models/User.models.js";
 import Store from "../../models/Store.models.js";
-import Order from "../../models/Order.models.js"; 
+import Order from "../../models/Order.models.js";
 
 // GET /api/stores/order/addresses - Get user's saved addresses
 export async function getUserAddresses(req, res) {
   try {
-    const user = await User.findById(req.user._id).select('addresses');
-    
+    const user = await User.findById(req.user._id).select("addresses");
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
@@ -22,16 +22,15 @@ export async function getUserAddresses(req, res) {
       success: true,
       data: {
         addresses: user.addresses || [],
-        hasAddresses: user.addresses && user.addresses.length > 0
-      }
+        hasAddresses: user.addresses && user.addresses.length > 0,
+      },
     });
-
   } catch (error) {
     console.error("Get addresses error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch addresses",
-      error: process.env.NODE_ENV === 'production' ? error.message : undefined
+      error: process.env.NODE_ENV === "production" ? error.message : undefined,
     });
   }
 }
@@ -45,7 +44,8 @@ export async function addDeliveryAddress(req, res) {
     if (!name || !phone || !street || !city || !state || !zipCode) {
       return res.status(400).json({
         success: false,
-        message: "All address fields are required (name, phone, street, city, state, zipCode)"
+        message:
+          "All address fields are required (name, phone, street, city, state, zipCode)",
       });
     }
 
@@ -54,7 +54,7 @@ export async function addDeliveryAddress(req, res) {
     if (!phoneRegex.test(phone)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid phone number format"
+        message: "Invalid phone number format",
       });
     }
 
@@ -63,7 +63,7 @@ export async function addDeliveryAddress(req, res) {
     if (!zipCodeRegex.test(zipCode)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid zipCode format (must be 6 digits)"
+        message: "Invalid zipCode format (must be 6 digits)",
       });
     }
 
@@ -74,14 +74,14 @@ export async function addDeliveryAddress(req, res) {
       city: city.trim(),
       state: state.trim(),
       zipCode: zipCode.trim(),
-      country: country ? country.trim() : "India"
+      country: country ? country.trim() : "India",
     };
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $push: { addresses: newAddress } },
-      { new: true, runValidators: true }
-    ).select('addresses');
+      { new: true, runValidators: true },
+    ).select("addresses");
 
     const addedAddress = user.addresses[user.addresses.length - 1];
 
@@ -90,16 +90,15 @@ export async function addDeliveryAddress(req, res) {
       message: "Address added successfully",
       data: {
         address: addedAddress,
-        addressId: addedAddress._id
-      }
+        addressId: addedAddress._id,
+      },
     });
-
   } catch (error) {
     console.error("Add address error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to add address",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 }
@@ -115,9 +114,9 @@ export async function createOrder(req, res) {
     );
 
     if (!cart || cart.items.length === 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Cart is empty" 
+        message: "Cart is empty",
       });
     }
 
@@ -128,19 +127,19 @@ export async function createOrder(req, res) {
     if (newAddress && Object.keys(newAddress).length > 0) {
       // Validate new address fields
       const { name, phone, street, city, state, zipCode, country } = newAddress;
-      
+
       if (!name || !phone || !street || !city || !state || !zipCode) {
         return res.status(400).json({
           success: false,
-          message: "All address fields are required when adding new address"
+          message: "All address fields are required when adding new address",
         });
       }
 
       // Add new address to user
       const user = await User.findByIdAndUpdate(
         req.user._id,
-        { 
-          $push: { 
+        {
+          $push: {
             addresses: {
               name: name.trim(),
               phone: phone.trim(),
@@ -148,31 +147,30 @@ export async function createOrder(req, res) {
               city: city.trim(),
               state: state.trim(),
               zipCode: zipCode.trim(),
-              country: country ? country.trim() : "India"
-            }
-          }
+              country: country ? country.trim() : "India",
+            },
+          },
         },
-        { new: true }
+        { new: true },
       );
 
       address = user.addresses[user.addresses.length - 1];
       addressIdToUse = address._id;
-
     } else if (addressId) {
       // Use existing address
       const user = await User.findById(req.user._id);
       address = user.addresses.id(addressId);
-      
+
       if (!address) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          message: "Selected address not found" 
+          message: "Selected address not found",
         });
       }
     } else {
       return res.status(400).json({
         success: false,
-        message: "Either provide addressId or newAddress"
+        message: "Either provide addressId or newAddress",
       });
     }
 
@@ -186,7 +184,7 @@ export async function createOrder(req, res) {
         outOfStockItems.push({
           name: item.product.name,
           available: item.product.stock,
-          requested: item.quantity
+          requested: item.quantity,
         });
       }
       totalAmount += item.product.price * item.quantity;
@@ -196,7 +194,7 @@ export async function createOrder(req, res) {
       return res.status(400).json({
         success: false,
         message: "Some items are out of stock",
-        outOfStockItems
+        outOfStockItems,
       });
     }
 
@@ -235,15 +233,15 @@ export async function createOrder(req, res) {
           color: "#7C3AED", // Purple theme to match frontend
         },
         selectedAddress: address,
-        addressId: addressIdToUse
+        addressId: addressIdToUse,
       },
     });
   } catch (error) {
     console.error("Create order error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "Failed to create order",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 }
@@ -266,22 +264,22 @@ export async function verifyPayment(req, res) {
       .digest("hex");
 
     if (razorpay_signature !== expectedSign) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Invalid payment signature. Payment verification failed." 
+        message: "Invalid payment signature. Payment verification failed.",
       });
     }
 
     // Get user's cart
     const cart = await Cart.findOne({ user: req.user._id }).populate([
       "items.product",
-      "items.product.store"
+      "items.product.store",
     ]);
 
     if (!cart || cart.items.length === 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Cart is empty" 
+        message: "Cart is empty",
       });
     }
 
@@ -290,9 +288,9 @@ export async function verifyPayment(req, res) {
     const address = user.addresses.id(addressId);
 
     if (!address) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Delivery address not found" 
+        message: "Delivery address not found",
       });
     }
 
@@ -303,12 +301,14 @@ export async function verifyPayment(req, res) {
 
     // Validate stock again and prepare order data
     for (const item of cart.items) {
-      const product = await Product.findById(item.product._id).populate('store');
+      const product = await Product.findById(item.product._id).populate(
+        "store",
+      );
 
       if (product.stock < item.quantity) {
         return res.status(400).json({
           success: false,
-          message: `Insufficient stock for ${product.name}. Available: ${product.stock}, Required: ${item.quantity}`
+          message: `Insufficient stock for ${product.name}. Available: ${product.stock}, Required: ${item.quantity}`,
         });
       }
 
@@ -317,8 +317,8 @@ export async function verifyPayment(req, res) {
         Product.findByIdAndUpdate(
           product._id,
           { $inc: { stock: -item.quantity } },
-          { new: true }
-        )
+          { new: true },
+        ),
       );
 
       totalAmount += product.price * item.quantity;
@@ -348,20 +348,20 @@ export async function verifyPayment(req, res) {
         city: address.city,
         state: address.state,
         zipCode: address.zipCode,
-        country: address.country || 'India'
+        country: address.country || "India",
       },
       payment: {
         razorpayOrderId: razorpay_order_id,
         razorpayPaymentId: razorpay_payment_id,
         razorpaySignature: razorpay_signature,
-        status: 'completed',
-        method: 'razorpay',
-        paidAt: new Date()
+        status: "completed",
+        method: "razorpay",
+        paidAt: new Date(),
       },
-      orderStatus: 'confirmed',
+      orderStatus: "confirmed",
       createdAt: new Date(),
       // Location will be updated separately via the location endpoint
-      deliveryLocation: null
+      deliveryLocation: null,
     });
 
     const savedOrder = await newOrder.save();
@@ -382,16 +382,15 @@ export async function verifyPayment(req, res) {
         items: orderItems,
         deliveryAddress: savedOrder.deliveryAddress,
         orderStatus: savedOrder.orderStatus,
-        estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
-      }
+        estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      },
     });
-
   } catch (error) {
     console.error("Payment verification error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "Payment verification failed",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 }
@@ -406,7 +405,7 @@ export async function updateAddress(req, res) {
     if (!name || !phone || !street || !city || !state || !zipCode) {
       return res.status(400).json({
         success: false,
-        message: "All address fields are required"
+        message: "All address fields are required",
       });
     }
 
@@ -416,7 +415,7 @@ export async function updateAddress(req, res) {
     if (!address) {
       return res.status(404).json({
         success: false,
-        message: "Address not found"
+        message: "Address not found",
       });
     }
 
@@ -435,16 +434,15 @@ export async function updateAddress(req, res) {
       success: true,
       message: "Address updated successfully",
       data: {
-        address
-      }
+        address,
+      },
     });
-
   } catch (error) {
     console.error("Update address error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to update address",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 }
@@ -457,13 +455,13 @@ export async function deleteAddress(req, res) {
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $pull: { addresses: { _id: addressId } } },
-      { new: true }
+      { new: true },
     );
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
@@ -471,16 +469,15 @@ export async function deleteAddress(req, res) {
       success: true,
       message: "Address deleted successfully",
       data: {
-        remainingAddresses: user.addresses
-      }
+        remainingAddresses: user.addresses,
+      },
     });
-
   } catch (error) {
     console.error("Delete address error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to delete address",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 }
@@ -495,20 +492,20 @@ export async function saveOrderLocation(req, res) {
     if (!latitude || !longitude) {
       return res.status(400).json({
         success: false,
-        message: "Latitude and longitude are required"
+        message: "Latitude and longitude are required",
       });
     }
 
     // Find the order and verify ownership
     const order = await Order.findOne({
       _id: orderId,
-      user: req.user._id
+      user: req.user._id,
     });
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Order not found"
+        message: "Order not found",
       });
     }
 
@@ -517,7 +514,7 @@ export async function saveOrderLocation(req, res) {
       coordinates: [parseFloat(longitude), parseFloat(latitude)], // GeoJSON format [lng, lat]
       accuracy: accuracy ? parseFloat(accuracy) : null,
       capturedAt: timestamp ? new Date(timestamp) : new Date(),
-      type: 'Point'
+      type: "Point",
     };
 
     await order.save();
@@ -531,17 +528,16 @@ export async function saveOrderLocation(req, res) {
           latitude: parseFloat(latitude),
           longitude: parseFloat(longitude),
           accuracy: accuracy ? parseFloat(accuracy) : null,
-          capturedAt: order.deliveryLocation.capturedAt
-        }
-      }
+          capturedAt: order.deliveryLocation.capturedAt,
+        },
+      },
     });
-
   } catch (error) {
     console.error("Save location error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to save delivery location",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 }
@@ -553,30 +549,26 @@ export async function getOrderDetails(req, res) {
 
     const order = await Order.findOne({
       _id: orderId,
-      user: req.user._id
-    }).populate([
-      'items.product',
-      'items.store'
-    ]);
+      user: req.user._id,
+    }).populate(["items.product", "items.store"]);
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Order not found"
+        message: "Order not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: order
+      data: order,
     });
-
   } catch (error) {
     console.error("Get order details error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch order details",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 }
@@ -592,7 +584,7 @@ export async function getUserOrders(req, res) {
     }
 
     const orders = await Order.find(query)
-      .populate(['items.product', 'items.store'])
+      .populate(["items.product", "items.store"])
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -607,17 +599,16 @@ export async function getUserOrders(req, res) {
           currentPage: parseInt(page),
           totalPages: Math.ceil(totalOrders / limit),
           totalOrders,
-          hasMore: page * limit < totalOrders
-        }
-      }
+          hasMore: page * limit < totalOrders,
+        },
+      },
     });
-
   } catch (error) {
     console.error("Get user orders error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch orders",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 }

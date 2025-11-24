@@ -70,7 +70,7 @@ If you didn't request this, your account is still secure - just ignore this mess
             </div>
           </div>
         </div>
-      `
+      `,
     });
 
     console.log("OTP sent successfully:", otp);
@@ -137,7 +137,7 @@ Time is ticking - enter your new code and reclaim your account!
             </div>
           </div>
         </div>
-      `
+      `,
     });
 
     console.log("Resent OTP:", otp);
@@ -171,7 +171,10 @@ export async function verifyOTP(identifier, otp) {
     storedOtp.verified = true; // mark OTP verified
     otpStore.set(user.email, storedOtp);
 
-    return { success: true, message: "Security code verified! Access granted! 🔓🎮" };
+    return {
+      success: true,
+      message: "Security code verified! Access granted! 🔓🎮",
+    };
   } catch (error) {
     console.error("Error verifying OTP:", error);
     throw error;
@@ -200,7 +203,10 @@ export async function resetPassword(identifier, newPassword) {
 
     otpStore.delete(user.email); // cleanup OTP
 
-    return { success: true, message: "Password updated successfully! Welcome back, gamer! 🎮🚀" };
+    return {
+      success: true,
+      message: "Password updated successfully! Welcome back, gamer! 🎮🚀",
+    };
   } catch (error) {
     console.error("Error updating password:", error);
     throw error;

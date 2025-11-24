@@ -15,10 +15,13 @@ const useSearch = () => {
 
     setLoading(true);
     try {
-      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/chat/search`, {
-        params: { query, type: searchType },
-        withCredentials: true,
-      });
+      const response = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/chat/search`,
+        {
+          params: { query, type: searchType },
+          withCredentials: true,
+        },
+      );
       if (response.data.success) {
         setSearchResults(response.data.users);
       }

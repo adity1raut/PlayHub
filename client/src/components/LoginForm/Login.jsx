@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { Eye, EyeOff, Lock, Mail, AlertCircle, Gamepad2, Zap } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  AlertCircle,
+  Gamepad2,
+  Zap,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import GamingBackground from "../../GamingBackground/GamingBackground";
 
@@ -197,10 +205,11 @@ const LoginForm = () => {
       {/* Login-specific styles */}
       <style jsx>{`
         @keyframes pulse-glow {
-          0%, 100% { 
+          0%,
+          100% {
             box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
           }
-          50% { 
+          50% {
             box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
           }
         }

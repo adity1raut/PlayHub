@@ -463,13 +463,17 @@ const setupSocketHandlers = (io) => {
       // Handle joining stream room
       socket.on("join-stream", (streamId) => {
         socket.join(`stream_${streamId}`);
-        console.log(`User ${socket.userId} joined stream room: stream_${streamId}`);
+        console.log(
+          `User ${socket.userId} joined stream room: stream_${streamId}`,
+        );
       });
 
       // Handle leaving stream room
       socket.on("leave-stream", (streamId) => {
         socket.leave(`stream_${streamId}`);
-        console.log(`User ${socket.userId} left stream room: stream_${streamId}`);
+        console.log(
+          `User ${socket.userId} left stream room: stream_${streamId}`,
+        );
       });
 
       // Handle stream chat message
@@ -478,21 +482,24 @@ const setupSocketHandlers = (io) => {
           const { streamId, message } = data;
 
           if (!streamId || !message || message.trim() === "") {
-            socket.emit("error", { message: "Stream ID and message are required" });
+            socket.emit("error", {
+              message: "Stream ID and message are required",
+            });
             return;
           }
 
           // Verify stream exists and is live
           const Stream = (await import("../models/Sream.models.js")).default;
           const stream = await Stream.findById(streamId);
-          
+
           if (!stream || !stream.isLive) {
             socket.emit("error", { message: "Stream not found or not live" });
             return;
           }
 
           // Create chat message
-          const LiveMessage = (await import("../models/StreamChat.models.js")).default;
+          const LiveMessage = (await import("../models/StreamChat.models.js"))
+            .default;
           const newMessage = new LiveMessage({
             streamId,
             sender: socket.userId,
@@ -506,15 +513,17 @@ const setupSocketHandlers = (io) => {
           await stream.save();
 
           // Populate sender info
-          await newMessage.populate("sender", "username profile.profileImage profile.name");
+          await newMessage.populate(
+            "sender",
+            "username profile.profileImage profile.name",
+          );
 
           // Broadcast to all viewers in the stream room
           io.to(`stream_${streamId}`).emit("new-stream-message", {
             streamId,
             message: newMessage,
-            timestamp: new Date()
+            timestamp: new Date(),
           });
-
         } catch (error) {
           console.error("Error sending stream message:", error);
           socket.emit("error", { message: "Failed to send stream message" });
@@ -525,9 +534,12 @@ const setupSocketHandlers = (io) => {
       socket.on("stream-started", async (data) => {
         try {
           const { streamId, streamTitle } = data;
-          
-          const user = await User.findById(socket.userId).populate('followers', '_id');
-          
+
+          const user = await User.findById(socket.userId).populate(
+            "followers",
+            "_id",
+          );
+
           if (user.followers && user.followers.length > 0) {
             for (const follower of user.followers) {
               await notificationService.createNotification(
@@ -535,7 +547,7 @@ const setupSocketHandlers = (io) => {
                 "STREAM_START",
                 `${user.username} started a live stream: ${streamTitle}`,
                 `/stream/${streamId}`,
-                socket.userId
+                socket.userId,
               );
             }
           }

@@ -23,7 +23,9 @@ export function ProductProvider({ children }) {
   const getAllProducts = async (params = {}) => {
     setLoading(true);
     try {
-  const res = await axios.get(`${backendUrl}/api/stores/products/all`, { params });
+      const res = await axios.get(`${backendUrl}/api/stores/products/all`, {
+        params,
+      });
       setProducts(res.data.products || []);
       return res.data;
     } catch (error) {
@@ -36,7 +38,7 @@ export function ProductProvider({ children }) {
 
   const getProductById = async (id) => {
     try {
-  const res = await axios.get(`${backendUrl}/api/stores/products/${id}`);
+      const res = await axios.get(`${backendUrl}/api/stores/products/${id}`);
       return res.data;
     } catch (error) {
       console.error("Error fetching product:", error);
@@ -84,9 +86,12 @@ export function ProductProvider({ children }) {
 
   const deleteProduct = async (storeId, productId) => {
     try {
-      await axios.delete(`${backendUrl}/api/stores/${storeId}/products/${productId}`, {
-        withCredentials: true,
-      });
+      await axios.delete(
+        `${backendUrl}/api/stores/${storeId}/products/${productId}`,
+        {
+          withCredentials: true,
+        },
+      );
       return { success: true };
     } catch (error) {
       return {
@@ -98,9 +103,12 @@ export function ProductProvider({ children }) {
 
   const getStoreProducts = async (storeId, params = {}) => {
     try {
-      const res = await axios.get(`${backendUrl}/api/stores/${storeId}/products`, {
-        params,
-      });
+      const res = await axios.get(
+        `${backendUrl}/api/stores/${storeId}/products`,
+        {
+          params,
+        },
+      );
       return res.data;
     } catch (error) {
       console.error("Error fetching store products:", error);
@@ -128,7 +136,9 @@ export function ProductProvider({ children }) {
   const searchProducts = async (params = {}) => {
     setSearchLoading(true);
     try {
-  const res = await axios.get(`${backendUrl}/api/stores/search/products`, { params });
+      const res = await axios.get(`${backendUrl}/api/stores/search/products`, {
+        params,
+      });
       setProducts(res.data.products || []);
       return res.data;
     } catch (error) {
@@ -142,9 +152,12 @@ export function ProductProvider({ children }) {
   const getTrendingProducts = async (limit = 20) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${backendUrl}/api/stores/trending/products`, {
-        params: { limit },
-      });
+      const res = await axios.get(
+        `${backendUrl}/api/stores/trending/products`,
+        {
+          params: { limit },
+        },
+      );
       return res.data;
     } catch (error) {
       console.error("Error fetching trending products:", error);
@@ -160,7 +173,7 @@ export function ProductProvider({ children }) {
       const res = await axios.post(
         `${backendUrl}/api/stores/wishlist/add/${productId}`,
         {},
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       // The backend returns only a message and inWishlist, so we need to refetch the wishlist
@@ -208,7 +221,7 @@ export function ProductProvider({ children }) {
       const res = await axios.get(`${backendUrl}/api/stores/order/addresses`, {
         withCredentials: true,
       });
-      
+
       setAddresses(res.data.data.addresses || []);
       return {
         success: true,
@@ -232,9 +245,13 @@ export function ProductProvider({ children }) {
 
     setAddressLoading(true);
     try {
-      const res = await axios.post(`${backendUrl}/api/stores/order/addresses`, addressData, {
-        withCredentials: true,
-      });
+      const res = await axios.post(
+        `${backendUrl}/api/stores/order/addresses`,
+        addressData,
+        {
+          withCredentials: true,
+        },
+      );
 
       // Update local addresses state
       await getUserAddresses();
@@ -265,7 +282,7 @@ export function ProductProvider({ children }) {
       const res = await axios.put(
         `${backendUrl}/api/stores/order/addresses/${addressId}`,
         addressData,
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       // Update local addresses state
@@ -294,9 +311,12 @@ export function ProductProvider({ children }) {
 
     setAddressLoading(true);
     try {
-      const res = await axios.delete(`${backendUrl}/api/stores/order/addresses/${addressId}`, {
-        withCredentials: true,
-      });
+      const res = await axios.delete(
+        `${backendUrl}/api/stores/order/addresses/${addressId}`,
+        {
+          withCredentials: true,
+        },
+      );
 
       // Update local addresses state
       setAddresses(res.data.data.remainingAddresses || []);
@@ -326,18 +346,22 @@ export function ProductProvider({ children }) {
     setOrderLoading(true);
     try {
       const payload = {};
-      
+
       if (addressId) {
         payload.addressId = addressId;
       }
-      
+
       if (newAddress) {
         payload.newAddress = newAddress;
       }
 
-      const res = await axios.post(`${backendUrl}/api/stores/order/create`, payload, {
-        withCredentials: true,
-      });
+      const res = await axios.post(
+        `${backendUrl}/api/stores/order/create`,
+        payload,
+        {
+          withCredentials: true,
+        },
+      );
 
       return { success: true, data: res.data.data };
     } catch (error) {
@@ -353,13 +377,17 @@ export function ProductProvider({ children }) {
   const verifyPayment = async (paymentData) => {
     setOrderLoading(true);
     try {
-      const res = await axios.post(`${backendUrl}/api/stores/order/verify`, paymentData, {
-        withCredentials: true,
-      });
+      const res = await axios.post(
+        `${backendUrl}/api/stores/order/verify`,
+        paymentData,
+        {
+          withCredentials: true,
+        },
+      );
 
       // Refresh cart after successful order
       await fetchCart();
-      
+
       return { success: true, data: res.data.data };
     } catch (error) {
       return {
@@ -377,17 +405,17 @@ export function ProductProvider({ children }) {
       const res = await axios.post(
         `${backendUrl}/api/stores/order/${orderId}/location`,
         locationData,
-        { withCredentials: true }
+        { withCredentials: true },
       );
       return {
         success: true,
         data: res.data.data,
-        message: res.data.message
+        message: res.data.message,
       };
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to save location"
+        message: error.response?.data?.message || "Failed to save location",
       };
     }
   };
@@ -401,12 +429,13 @@ export function ProductProvider({ children }) {
       });
       return {
         success: true,
-        data: res.data.data
+        data: res.data.data,
       };
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to fetch order details"
+        message:
+          error.response?.data?.message || "Failed to fetch order details",
       };
     } finally {
       setLoading(false);
@@ -422,18 +451,18 @@ export function ProductProvider({ children }) {
         params: { page, limit, status },
         withCredentials: true,
       });
-      
+
       const ordersData = res.data.data;
       setOrders(ordersData.orders || []);
-      
+
       return {
         success: true,
-        data: ordersData
+        data: ordersData,
       };
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to fetch orders"
+        message: error.response?.data?.message || "Failed to fetch orders",
       };
     } finally {
       setLoading(false);
@@ -444,9 +473,12 @@ export function ProductProvider({ children }) {
   const getStoreAnalytics = async (storeId) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${backendUrl}/api/stores/${storeId}/analytics`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${backendUrl}/api/stores/${storeId}/analytics`,
+        {
+          withCredentials: true,
+        },
+      );
       return res.data;
     } catch (error) {
       console.error("Error fetching analytics:", error);
@@ -684,9 +716,12 @@ export function ProductProvider({ children }) {
 
     setCartLoading(true);
     try {
-      const response = await axios.delete(`${backendUrl}/api/stores/cart/clear`, {
-        withCredentials: true,
-      });
+      const response = await axios.delete(
+        `${backendUrl}/api/stores/cart/clear`,
+        {
+          withCredentials: true,
+        },
+      );
 
       const emptyCart = { items: [], totalAmount: 0 };
       setCart(emptyCart);

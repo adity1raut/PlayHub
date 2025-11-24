@@ -20,7 +20,7 @@ const CreatePost = ({ onPostCreated }) => {
         toast.error("File size must be less than 10MB");
         return;
       }
-      
+
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (e) => setPreview(e.target.result);
@@ -51,10 +51,14 @@ const CreatePost = ({ onPostCreated }) => {
         formData.append("media", selectedFile);
       }
 
-        const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/posts/create`, formData, {
-        withCredentials: true,
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/posts/create`,
+        formData,
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
 
       if (res.data.success) {
         setContent("");
@@ -145,7 +149,7 @@ const CreatePost = ({ onPostCreated }) => {
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                
+
                 {/* Photo Button */}
                 <button
                   type="button"
@@ -199,17 +203,19 @@ const CreatePost = ({ onPostCreated }) => {
             {/* Character Count & File Info */}
             <div className="flex justify-between items-center mt-3 text-sm text-gray-500">
               <div className="flex items-center gap-4">
-                <span className={`${content.length > 280 ? 'text-red-400' : 'text-gray-400'}`}>
+                <span
+                  className={`${content.length > 280 ? "text-red-400" : "text-gray-400"}`}
+                >
                   {content.length}/500 characters
                 </span>
                 {selectedFile && (
                   <span className="text-purple-400">
                     📎 {selectedFile.name.substring(0, 20)}
-                    {selectedFile.name.length > 20 ? '...' : ''}
+                    {selectedFile.name.length > 20 ? "..." : ""}
                   </span>
                 )}
               </div>
-              
+
               {/* Tips */}
               <div className="text-xs text-gray-500">
                 💡 Max file size: 10MB

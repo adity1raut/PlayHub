@@ -81,11 +81,14 @@ Ready to dominate the leaderboards? Enter your code now!
             </div>
           </div>
         </div>
-      `
+      `,
     });
 
     console.log("Registration OTP sent:", otp);
-    return { success: true, message: "Gaming access code sent to your email! 🎮" };
+    return {
+      success: true,
+      message: "Gaming access code sent to your email! 🎮",
+    };
   } catch (error) {
     console.error("Error sending registration OTP:", error);
     throw error;
@@ -148,7 +151,7 @@ Don't let this opportunity slip away - enter your new code and join the action!
             </div>
           </div>
         </div>
-      `
+      `,
     });
 
     console.log("Registration OTP resent:", otp);

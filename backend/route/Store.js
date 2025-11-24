@@ -23,7 +23,7 @@ import {
 import {
   getTrendingProducts,
   searchProducts,
-  getAllProducts
+  getAllProducts,
 } from "../controllers/Store/search.routes.js";
 import {
   addProduct,
@@ -41,7 +41,7 @@ import {
   getUserAddresses,
   addDeliveryAddress,
   updateAddress,
-  deleteAddress
+  deleteAddress,
 } from "../controllers/Store/order.routes.js";
 import {
   addToCart,

@@ -12,7 +12,7 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: process.env.VITE_BACKEND_URL ,
+        target: process.env.VITE_BACKEND_URL,
         changeOrigin: true,
         secure: false,
       },

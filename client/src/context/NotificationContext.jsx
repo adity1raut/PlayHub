@@ -51,9 +51,12 @@ export function NotificationProvider({ children }) {
     if (!isAuthenticated) return;
 
     try {
-      const res = await axios.get(`${backendUrl}/api/notifications/unread-count`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${backendUrl}/api/notifications/unread-count`,
+        {
+          withCredentials: true,
+        },
+      );
 
       if (res.data.success) {
         setUnreadCount(res.data.unreadCount);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProduct } from "../../context/ProductContext";
 import { Heart, ArrowLeft, Store } from "lucide-react";
-import ProductCard from "./ProductCard"; 
+import ProductCard from "./ProductCard";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import GamingBackground from "../../GamingBackground/GamingBackground";
@@ -20,7 +20,6 @@ export function Wishlist() {
         setTotalPages(data.totalPages);
       }
     };
-   
   }, [currentPage, getUserWishlist]);
 
   const handleWishlistToggle = async (productId) => {
@@ -61,8 +60,13 @@ export function Wishlist() {
           >
             <span className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-purple-800/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             <span className="relative flex items-center gap-2">
-              <ArrowLeft size={20} className="text-purple-400 group-hover:text-purple-300 transition-colors" />
-              <span className="font-medium group-hover:text-white transition-colors">Back</span>
+              <ArrowLeft
+                size={20}
+                className="text-purple-400 group-hover:text-purple-300 transition-colors"
+              />
+              <span className="font-medium group-hover:text-white transition-colors">
+                Back
+              </span>
             </span>
           </button>
 
@@ -72,8 +76,13 @@ export function Wishlist() {
           >
             <span className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-purple-700/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             <span className="relative flex items-center gap-2">
-              <Store size={20} className="text-purple-400 group-hover:text-purple-200 transition-colors" />
-              <span className="font-medium group-hover:text-white transition-colors">My Store</span>
+              <Store
+                size={20}
+                className="text-purple-400 group-hover:text-purple-200 transition-colors"
+              />
+              <span className="font-medium group-hover:text-white transition-colors">
+                My Store
+              </span>
             </span>
           </button>
         </div>
@@ -82,7 +91,9 @@ export function Wishlist() {
           <div className="bg-gradient-to-r from-purple-800 to-purple-900 px-8 py-6 border-b border-gray-700">
             <div className="flex items-center justify-center mb-2">
               <Heart className="w-6 h-6 text-purple-400 mr-2" />
-              <h2 className="text-3xl font-bold text-white text-center">MY WISHLIST</h2>
+              <h2 className="text-3xl font-bold text-white text-center">
+                MY WISHLIST
+              </h2>
             </div>
             <p className="text-purple-300 text-center mt-2 text-sm">
               All your favorite products in one place
@@ -93,8 +104,12 @@ export function Wishlist() {
         {wishlist?.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 bg-gray-800 rounded-xl border border-gray-700 shadow-xl max-w-md mx-auto">
             <Heart className="h-20 w-20 text-gray-600 mb-6" />
-            <p className="text-xl text-gray-400 font-semibold mb-2">Your wishlist is empty</p>
-            <p className="text-gray-500 mb-4">Add products to your wishlist to see them here</p>
+            <p className="text-xl text-gray-400 font-semibold mb-2">
+              Your wishlist is empty
+            </p>
+            <p className="text-gray-500 mb-4">
+              Add products to your wishlist to see them here
+            </p>
           </div>
         ) : (
           <>

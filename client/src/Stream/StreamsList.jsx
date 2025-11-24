@@ -52,9 +52,12 @@ const StreamsList = () => {
     if (!isAuthenticated) return;
 
     try {
-      const response = await axios.get(`${backendUrl}/api/stream/user/my-streams`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
+      const response = await axios.get(
+        `${backendUrl}/api/stream/user/my-streams`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        },
+      );
       setMyStreams(response.data);
     } catch (error) {
       console.error("Error fetching my streams:", error);

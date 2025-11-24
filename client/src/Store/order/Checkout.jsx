@@ -1,19 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { useProduct } from "../../context/ProductContext";
 import { useAuth } from "../../context/AuthContext";
-import { MapPin, CreditCard, CheckCircle, Loader2, Navigation, ArrowLeft, Store, Plus, Edit, Trash2, X } from "lucide-react";
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import {
+  MapPin,
+  CreditCard,
+  CheckCircle,
+  Loader2,
+  Navigation,
+  ArrowLeft,
+  Store,
+  Plus,
+  Edit,
+  Trash2,
+  X,
+} from "lucide-react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
 import GamingBackground from "../../GamingBackground/GamingBackground";
 
 export function Checkout() {
   const navigate = useNavigate();
-  const { 
-    createOrder, 
-    verifyPayment, 
-    saveOrderLocation, 
-    orderLoading, 
+  const {
+    createOrder,
+    verifyPayment,
+    saveOrderLocation,
+    orderLoading,
     fetchCart,
     addresses,
     getUserAddresses,
@@ -21,17 +33,17 @@ export function Checkout() {
     updateAddress,
     deleteAddress,
     addressLoading,
-    cart
+    cart,
   } = useProduct();
   const { user } = useAuth();
-  
+
   const [selectedAddress, setSelectedAddress] = useState("");
   const [paymentStep, setPaymentStep] = useState("address");
   const [orderData, setOrderData] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [savingLocation, setSavingLocation] = useState(false);
-  
+
   // Address form states
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
@@ -42,7 +54,7 @@ export function Checkout() {
     city: "",
     state: "",
     zipCode: "",
-    country: "India"
+    country: "India",
   });
 
   // Load addresses when component mounts
@@ -67,7 +79,7 @@ export function Checkout() {
       city: "",
       state: "",
       zipCode: "",
-      country: "India"
+      country: "India",
     });
     setEditingAddress(null);
     setShowAddressForm(false);
@@ -76,7 +88,7 @@ export function Checkout() {
   const handleAddressFormChange = (e) => {
     setAddressForm({
       ...addressForm,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -93,7 +105,7 @@ export function Checkout() {
       city: address.city,
       state: address.state,
       zipCode: address.zipCode,
-      country: address.country || "India"
+      country: address.country || "India",
     });
     setEditingAddress(address._id);
     setShowAddressForm(true);
@@ -116,10 +128,16 @@ export function Checkout() {
 
   const handleSaveAddress = async (e) => {
     e.preventDefault();
-    
+
     // Validate form
-    if (!addressForm.name || !addressForm.phone || !addressForm.street || 
-        !addressForm.city || !addressForm.state || !addressForm.zipCode) {
+    if (
+      !addressForm.name ||
+      !addressForm.phone ||
+      !addressForm.street ||
+      !addressForm.city ||
+      !addressForm.state ||
+      !addressForm.zipCode
+    ) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -162,7 +180,7 @@ export function Checkout() {
   // Function to get user's current location
   const getCurrentLocation = () => {
     setGettingLocation(true);
-    
+
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by this browser");
       setGettingLocation(false);
@@ -172,7 +190,7 @@ export function Checkout() {
     const options = {
       enableHighAccuracy: true,
       timeout: 10000,
-      maximumAge: 60000
+      maximumAge: 60000,
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -181,14 +199,14 @@ export function Checkout() {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
-        
+
         setUserLocation(location);
         setGettingLocation(false);
-        
+
         toast.success("Location captured successfully!");
-        
+
         // Save location to order if we have an orderId
         if (orderData?.orderId) {
           saveLocationToOrder(location);
@@ -197,8 +215,8 @@ export function Checkout() {
       (error) => {
         setGettingLocation(false);
         let errorMessage = "Unable to get location";
-        
-        switch(error.code) {
+
+        switch (error.code) {
           case error.PERMISSION_DENIED:
             errorMessage = "Location access denied by user";
             break;
@@ -211,11 +229,11 @@ export function Checkout() {
           default:
             errorMessage = "An unknown error occurred";
         }
-        
+
         toast.error(errorMessage);
         console.error("Geolocation error:", error);
       },
-      options
+      options,
     );
   };
 
@@ -229,9 +247,11 @@ export function Checkout() {
     setSavingLocation(true);
     try {
       const result = await saveOrderLocation(orderData.orderId, location);
-      
+
       if (result.success) {
-        toast.success(result.message || "Location saved to order successfully!");
+        toast.success(
+          result.message || "Location saved to order successfully!",
+        );
       } else {
         toast.error(result.message || "Failed to save location");
       }
@@ -282,15 +302,15 @@ export function Checkout() {
           razorpay_signature: response.razorpay_signature,
           addressId: selectedAddress,
         };
-        
+
         const result = await verifyPayment(paymentData);
         if (result.success) {
           setPaymentStep("success");
           setOrderData(result.data);
-          
+
           // Clear cart after successful payment
           await fetchCart();
-          
+
           // Automatically get location after successful payment
           toast.success("Payment successful! Getting your location...");
           setTimeout(() => {
@@ -306,7 +326,7 @@ export function Checkout() {
         },
       },
     };
-    
+
     if (window.Razorpay) {
       const rzp = new window.Razorpay(options);
       rzp.open();
@@ -330,7 +350,7 @@ export function Checkout() {
           pauseOnHover
           theme="dark"
         />
-        
+
         <div className="max-w-4xl mx-auto">
           {/* Navigation */}
           <div className="flex items-center justify-between mb-6">
@@ -340,8 +360,13 @@ export function Checkout() {
             >
               <span className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-purple-800/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               <span className="relative flex items-center gap-2">
-                <ArrowLeft size={20} className="text-purple-400 group-hover:text-purple-300 transition-colors" />
-                <span className="font-medium group-hover:text-white transition-colors">Continue Shopping</span>
+                <ArrowLeft
+                  size={20}
+                  className="text-purple-400 group-hover:text-purple-300 transition-colors"
+                />
+                <span className="font-medium group-hover:text-white transition-colors">
+                  Continue Shopping
+                </span>
               </span>
             </button>
 
@@ -351,8 +376,13 @@ export function Checkout() {
             >
               <span className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-purple-700/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
               <span className="relative flex items-center gap-2">
-                <Store size={20} className="text-purple-400 group-hover:text-purple-200 transition-colors" />
-                <span className="font-medium group-hover:text-white transition-colors">My Store</span>
+                <Store
+                  size={20}
+                  className="text-purple-400 group-hover:text-purple-200 transition-colors"
+                />
+                <span className="font-medium group-hover:text-white transition-colors">
+                  My Store
+                </span>
               </span>
             </button>
           </div>
@@ -400,18 +430,25 @@ export function Checkout() {
                     <div className="flex items-center gap-2 text-green-400 mb-2">
                       <CheckCircle className="h-4 w-4" />
                       <span>
-                        Location captured {savingLocation ? "and saving..." : "successfully!"}
+                        Location captured{" "}
+                        {savingLocation ? "and saving..." : "successfully!"}
                       </span>
-                      {savingLocation && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {savingLocation && (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      )}
                     </div>
                     <div className="text-left bg-gray-800 rounded p-3 space-y-1">
                       <div className="flex justify-between">
                         <span>Latitude:</span>
-                        <span className="font-mono">{userLocation.latitude.toFixed(6)}</span>
+                        <span className="font-mono">
+                          {userLocation.latitude.toFixed(6)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Longitude:</span>
-                        <span className="font-mono">{userLocation.longitude.toFixed(6)}</span>
+                        <span className="font-mono">
+                          {userLocation.longitude.toFixed(6)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Accuracy:</span>
@@ -419,14 +456,21 @@ export function Checkout() {
                       </div>
                       <div className="flex justify-between">
                         <span>Captured:</span>
-                        <span>{new Date(userLocation.timestamp).toLocaleTimeString()}</span>
+                        <span>
+                          {new Date(
+                            userLocation.timestamp,
+                          ).toLocaleTimeString()}
+                        </span>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className="text-sm text-yellow-400 flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    <span>Location not captured yet. Click "Get Location" to capture your current position for delivery tracking.</span>
+                    <span>
+                      Location not captured yet. Click "Get Location" to capture
+                      your current position for delivery tracking.
+                    </span>
                   </div>
                 )}
               </div>
@@ -437,7 +481,9 @@ export function Checkout() {
                 <div className="space-y-2 text-sm text-purple-300">
                   <div className="flex justify-between">
                     <span>Order ID:</span>
-                    <span className="font-mono">{orderData?.orderNumber || orderData?.orderId}</span>
+                    <span className="font-mono">
+                      {orderData?.orderNumber || orderData?.orderId}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Payment ID:</span>
@@ -449,12 +495,18 @@ export function Checkout() {
                   </div>
                   <div className="flex justify-between">
                     <span>Order Status:</span>
-                    <span className="text-green-400 capitalize">{orderData?.orderStatus || 'confirmed'}</span>
+                    <span className="text-green-400 capitalize">
+                      {orderData?.orderStatus || "confirmed"}
+                    </span>
                   </div>
                   {orderData?.estimatedDelivery && (
                     <div className="flex justify-between">
                       <span>Expected Delivery:</span>
-                      <span>{new Date(orderData.estimatedDelivery).toLocaleDateString()}</span>
+                      <span>
+                        {new Date(
+                          orderData.estimatedDelivery,
+                        ).toLocaleDateString()}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -468,7 +520,7 @@ export function Checkout() {
                 >
                   View My Orders
                 </button>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => navigate("/products")}
@@ -476,7 +528,7 @@ export function Checkout() {
                   >
                     Continue Shopping
                   </button>
-                  
+
                   <button
                     onClick={() => navigate("/wishlist")}
                     className="px-6 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
@@ -507,7 +559,7 @@ export function Checkout() {
         pauseOnHover
         theme="dark"
       />
-      
+
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Navigation */}
         <div className="flex items-center justify-between mb-6">
@@ -517,8 +569,13 @@ export function Checkout() {
           >
             <span className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-purple-800/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             <span className="relative flex items-center gap-2">
-              <ArrowLeft size={20} className="text-purple-400 group-hover:text-purple-300 transition-colors" />
-              <span className="font-medium group-hover:text-white transition-colors">Back to Cart</span>
+              <ArrowLeft
+                size={20}
+                className="text-purple-400 group-hover:text-purple-300 transition-colors"
+              />
+              <span className="font-medium group-hover:text-white transition-colors">
+                Back to Cart
+              </span>
             </span>
           </button>
 
@@ -528,8 +585,13 @@ export function Checkout() {
           >
             <span className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-purple-700/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             <span className="relative flex items-center gap-2">
-              <Store size={20} className="text-purple-400 group-hover:text-purple-200 transition-colors" />
-              <span className="font-medium group-hover:text-white transition-colors">My Store</span>
+              <Store
+                size={20}
+                className="text-purple-400 group-hover:text-purple-200 transition-colors"
+              />
+              <span className="font-medium group-hover:text-white transition-colors">
+                My Store
+              </span>
             </span>
           </button>
         </div>
@@ -702,8 +764,10 @@ export function Checkout() {
                               <Loader2 className="h-4 w-4 animate-spin" />
                               Saving...
                             </>
+                          ) : editingAddress ? (
+                            "Update Address"
                           ) : (
-                            editingAddress ? "Update Address" : "Save Address"
+                            "Save Address"
                           )}
                         </button>
                       </div>
@@ -717,7 +781,9 @@ export function Checkout() {
                 {addressLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
-                    <span className="ml-2 text-purple-300">Loading addresses...</span>
+                    <span className="ml-2 text-purple-300">
+                      Loading addresses...
+                    </span>
                   </div>
                 ) : addresses.length > 0 ? (
                   addresses.map((address) => (
@@ -741,16 +807,19 @@ export function Checkout() {
                             className="text-purple-600 accent-purple-600 mt-1"
                           />
                           <div>
-                            <p className="font-medium text-white">{address.name}</p>
+                            <p className="font-medium text-white">
+                              {address.name}
+                            </p>
                             <p className="text-sm text-purple-300">
-                              {address.street}, {address.city}, {address.state} - {address.zipCode}
+                              {address.street}, {address.city}, {address.state}{" "}
+                              - {address.zipCode}
                             </p>
                             <p className="text-sm text-purple-400">
                               Phone: {address.phone}
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="flex gap-2 ml-4">
                           <button
                             onClick={() => handleEditAddress(address)}
@@ -793,23 +862,32 @@ export function Checkout() {
               </h3>
               <div className="bg-gray-900 rounded-lg p-6 border border-gray-700">
                 <div className="flex items-center gap-3 mb-4">
-                  <img 
-                    src="https://razorpay.com/assets/razorpay-logo.svg" 
-                    alt="Razorpay" 
+                  <img
+                    src="https://razorpay.com/assets/razorpay-logo.svg"
+                    alt="Razorpay"
                     className="h-6"
                     onError={(e) => {
-                      e.target.style.display = 'none';
+                      e.target.style.display = "none";
                     }}
                   />
-                  <span className="text-white font-medium">Secure Payment Gateway</span>
+                  <span className="text-white font-medium">
+                    Secure Payment Gateway
+                  </span>
                 </div>
                 <p className="text-sm text-purple-300 mb-4">
-                  You will be redirected to Razorpay for secure payment processing. We accept:
+                  You will be redirected to Razorpay for secure payment
+                  processing. We accept:
                 </p>
                 <div className="flex flex-wrap gap-2 mb-6 text-xs text-gray-400">
-                  <span className="bg-gray-800 px-2 py-1 rounded">Credit Cards</span>
-                  <span className="bg-gray-800 px-2 py-1 rounded">Debit Cards</span>
-                  <span className="bg-gray-800 px-2 py-1 rounded">Net Banking</span>
+                  <span className="bg-gray-800 px-2 py-1 rounded">
+                    Credit Cards
+                  </span>
+                  <span className="bg-gray-800 px-2 py-1 rounded">
+                    Debit Cards
+                  </span>
+                  <span className="bg-gray-800 px-2 py-1 rounded">
+                    Net Banking
+                  </span>
                   <span className="bg-gray-800 px-2 py-1 rounded">UPI</span>
                   <span className="bg-gray-800 px-2 py-1 rounded">Wallets</span>
                 </div>
@@ -817,7 +895,9 @@ export function Checkout() {
                 {/* Order Summary */}
                 {cart.items && cart.items.length > 0 && (
                   <div className="bg-gray-800 rounded-lg p-4 mb-4">
-                    <h4 className="text-white font-medium mb-3">Order Summary</h4>
+                    <h4 className="text-white font-medium mb-3">
+                      Order Summary
+                    </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between text-purple-300">
                         <span>Items ({cart.items.length})</span>
@@ -838,7 +918,12 @@ export function Checkout() {
 
                 <button
                   onClick={proceedToPayment}
-                  disabled={!selectedAddress || orderLoading || !cart.items || cart.items.length === 0}
+                  disabled={
+                    !selectedAddress ||
+                    orderLoading ||
+                    !cart.items ||
+                    cart.items.length === 0
+                  }
                   className="w-full py-3 bg-purple-700 text-white rounded-lg hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors font-semibold"
                 >
                   {orderLoading ? (
@@ -853,13 +938,13 @@ export function Checkout() {
                     </>
                   )}
                 </button>
-                
+
                 {!selectedAddress && (
                   <p className="text-red-400 text-sm mt-2 text-center">
                     Please select a delivery address to continue
                   </p>
                 )}
-                
+
                 {(!cart.items || cart.items.length === 0) && (
                   <p className="text-red-400 text-sm mt-2 text-center">
                     Your cart is empty

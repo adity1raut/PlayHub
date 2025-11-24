@@ -7,11 +7,11 @@ import axios from "axios";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-import { 
-  MessageCircle, 
-  ShoppingBag, 
-  Heart, 
-  Star, 
+import {
+  MessageCircle,
+  ShoppingBag,
+  Heart,
+  Star,
   Video,
   Play,
   Users,
@@ -19,7 +19,7 @@ import {
   Zap,
   ShoppingCart,
   User,
-  Eye
+  Eye,
 } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -33,16 +33,16 @@ function Home() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [activeTab, setActiveTab] = useState('posts');
+  const [activeTab, setActiveTab] = useState("posts");
   const { user, isAuthenticated } = useAuth();
-  const { 
-    products, 
-    getAllProducts, 
+  const {
+    products,
+    getAllProducts,
     loading: productLoading,
     addToCart,
     toggleWishlist,
     isInCart,
-    getCartItemQuantity 
+    getCartItemQuantity,
   } = useProduct();
   const navigate = useNavigate();
 
@@ -50,9 +50,12 @@ function Home() {
     try {
       if (pageNum > 1) setLoadingMore(true);
 
-      const res = await axios.get(`${backendUrl}/api/posts/feed?page=${pageNum}&limit=10`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${backendUrl}/api/posts/feed?page=${pageNum}&limit=10`,
+        {
+          withCredentials: true,
+        },
+      );
 
       if (res.data.success) {
         if (append) {
@@ -73,7 +76,12 @@ function Home() {
 
   const fetchProducts = async () => {
     try {
-      await getAllProducts({ page: 1, limit: 12, sort: "createdAt", order: "desc" });
+      await getAllProducts({
+        page: 1,
+        limit: 12,
+        sort: "createdAt",
+        order: "desc",
+      });
     } catch (error) {
       console.error("Error fetching products:", error);
     }
@@ -82,8 +90,8 @@ function Home() {
   const fetchLiveStreams = async () => {
     try {
       setStreamLoading(true);
-  const response = await axios.get(`${backendUrl}/api/stream/live`);
-  setLiveStreams(response.data.slice(0, 8)); // Get first 8 live streams for home
+      const response = await axios.get(`${backendUrl}/api/stream/live`);
+      setLiveStreams(response.data.slice(0, 8)); // Get first 8 live streams for home
     } catch (error) {
       console.error("Error fetching live streams:", error);
     } finally {
@@ -102,7 +110,7 @@ function Home() {
   // Refresh live streams every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      if (activeTab === 'streams') {
+      if (activeTab === "streams") {
         fetchLiveStreams();
       }
     }, 30000);
@@ -115,7 +123,7 @@ function Home() {
   };
 
   const loadMore = () => {
-    if (!loadingMore && hasMore && activeTab === 'posts') {
+    if (!loadingMore && hasMore && activeTab === "posts") {
       fetchPosts(page + 1, true);
     }
   };
@@ -128,15 +136,15 @@ function Home() {
     }
 
     if (!product.store?._id) {
-      toast.error('Store information not available');
+      toast.error("Store information not available");
       return;
     }
 
     const result = await addToCart(product._id, 1, product.store._id);
     if (result.success) {
-      toast.success('Added to cart successfully!');
+      toast.success("Added to cart successfully!");
     } else {
-      toast.error(result.message || 'Failed to add to cart');
+      toast.error(result.message || "Failed to add to cart");
     }
   };
 
@@ -149,9 +157,11 @@ function Home() {
 
     const result = await toggleWishlist(productId);
     if (result.success) {
-      toast.success(result.inWishlist ? "Added to wishlist!" : "Removed from wishlist!");
+      toast.success(
+        result.inWishlist ? "Added to wishlist!" : "Removed from wishlist!",
+      );
     } else {
-      toast.error(result.message || 'Failed to update wishlist');
+      toast.error(result.message || "Failed to update wishlist");
     }
   };
 
@@ -160,7 +170,7 @@ function Home() {
   };
 
   const handleViewStream = (stream) => {
-    window.open(`/stream/${stream._id}`, '_blank');
+    window.open(`/stream/${stream._id}`, "_blank");
   };
 
   const handleMyStoreClick = () => {
@@ -215,12 +225,9 @@ function Home() {
       <GamingBackground />
       <ToastContainer position="top-right" autoClose={3000} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        
         {/* Header */}
         <div className="mb-8">
           <div className="bg-gray-800 rounded-xl border border-gray-700 shadow-2xl overflow-hidden">
-
-
             <div className="px-8 py-6">
               {/* Quick Actions */}
               <div className="flex items-center gap-4 max-w-4xl mx-auto justify-center flex-wrap">
@@ -275,33 +282,33 @@ function Home() {
         {/* Tab Navigation */}
         <div className="flex space-x-1 mb-6 bg-gray-800 p-1 rounded-lg border border-gray-700">
           <button
-            onClick={() => setActiveTab('posts')}
+            onClick={() => setActiveTab("posts")}
             className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-300 ${
-              activeTab === 'posts'
-                ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg'
-                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+              activeTab === "posts"
+                ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg"
+                : "text-gray-400 hover:text-gray-200 hover:bg-gray-700"
             }`}
           >
             <MessageCircle className="w-4 h-4 inline mr-2" />
             Posts
           </button>
           <button
-            onClick={() => setActiveTab('products')}
+            onClick={() => setActiveTab("products")}
             className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-300 ${
-              activeTab === 'products'
-                ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg'
-                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+              activeTab === "products"
+                ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg"
+                : "text-gray-400 hover:text-gray-200 hover:bg-gray-700"
             }`}
           >
             <ShoppingBag className="w-4 h-4 inline mr-2" />
             Latest Products
           </button>
           <button
-            onClick={() => setActiveTab('streams')}
+            onClick={() => setActiveTab("streams")}
             className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-300 ${
-              activeTab === 'streams'
-                ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg'
-                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+              activeTab === "streams"
+                ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg"
+                : "text-gray-400 hover:text-gray-200 hover:bg-gray-700"
             }`}
           >
             <Video className="w-4 h-4 inline mr-2" />
@@ -315,7 +322,7 @@ function Home() {
         </div>
 
         {/* Posts Tab */}
-        {activeTab === 'posts' && (
+        {activeTab === "posts" && (
           <div>
             {/* Posts List */}
             <div className="space-y-4 max-w-2xl mx-auto">
@@ -362,13 +369,13 @@ function Home() {
         )}
 
         {/* Products Tab */}
-        {activeTab === 'products' && (
+        {activeTab === "products" && (
           <div>
             {/* Products Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((product) => (
-                <div 
-                  key={product._id} 
+                <div
+                  key={product._id}
                   className="bg-gray-800 rounded-xl border border-gray-700 shadow-xl overflow-hidden hover:shadow-2xl hover:shadow-purple-700/30 transition-all duration-300 hover:translate-y-[-2px] cursor-pointer group"
                   onClick={() => handleProductClick(product._id)}
                 >
@@ -385,7 +392,7 @@ function Home() {
                         <ShoppingBag className="w-12 h-12 text-gray-500" />
                       </div>
                     )}
-                    
+
                     {/* Wishlist Button */}
                     <button
                       onClick={(e) => {
@@ -411,7 +418,7 @@ function Home() {
                     <h3 className="font-semibold text-white mb-1 truncate group-hover:text-purple-300 transition-colors">
                       {product.name}
                     </h3>
-                    
+
                     {/* Store Name */}
                     {product.store && (
                       <p className="text-sm text-gray-400 mb-2">
@@ -424,7 +431,8 @@ function Home() {
                       <div className="flex items-center mb-2">
                         <Star className="w-4 h-4 text-yellow-400 fill-current" />
                         <span className="text-sm text-gray-400 ml-1">
-                          {product.averageRating.toFixed(1)} ({product.totalRatings})
+                          {product.averageRating.toFixed(1)} (
+                          {product.totalRatings})
                         </span>
                       </div>
                     )}
@@ -452,16 +460,15 @@ function Home() {
                       disabled={!product.inStock}
                       className={`w-full py-2 px-4 rounded-md font-medium transition-all duration-300 ${
                         product.inStock
-                          ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-purple-700/30'
-                          : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                          ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-purple-700/30"
+                          : "bg-gray-700 text-gray-500 cursor-not-allowed"
                       }`}
                     >
-                      {!product.inStock 
-                        ? 'Out of Stock' 
-                        : isInCart(product._id) 
-                          ? `In Cart (${getCartItemQuantity(product._id)})` 
-                          : 'Add to Cart'
-                      }
+                      {!product.inStock
+                        ? "Out of Stock"
+                        : isInCart(product._id)
+                          ? `In Cart (${getCartItemQuantity(product._id)})`
+                          : "Add to Cart"}
                     </button>
                   </div>
                 </div>
@@ -486,7 +493,7 @@ function Home() {
         )}
 
         {/* Live Streams Tab */}
-        {activeTab === 'streams' && (
+        {activeTab === "streams" && (
           <div>
             {/* Stream Header */}
             <div className="flex items-center justify-between mb-6">
@@ -514,14 +521,16 @@ function Home() {
                 {/* Live Streams Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {liveStreams.map((stream) => (
-                    <div 
-                      key={stream._id} 
+                    <div
+                      key={stream._id}
                       className="bg-gray-800 rounded-xl border border-gray-700 shadow-xl overflow-hidden hover:shadow-2xl hover:shadow-red-700/30 transition-all duration-300 hover:translate-y-[-2px] group"
                     >
                       {/* Stream Thumbnail */}
                       <div className="relative aspect-video bg-gray-700 overflow-hidden">
                         <img
-                          src={stream.thumbnail || "/default-stream-thumbnail.jpg"}
+                          src={
+                            stream.thumbnail || "/default-stream-thumbnail.jpg"
+                          }
                           alt={stream.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           onError={(e) => {
@@ -548,8 +557,10 @@ function Home() {
                         </div>
 
                         {/* Play Overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 cursor-pointer"
-                             onClick={() => handleViewStream(stream)}>
+                        <div
+                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 cursor-pointer"
+                          onClick={() => handleViewStream(stream)}
+                        >
                           <div className="bg-white bg-opacity-90 rounded-full p-3">
                             <Play size={24} className="text-gray-900 ml-1" />
                           </div>
@@ -564,7 +575,10 @@ function Home() {
 
                         <div className="flex items-center mb-3">
                           <img
-                            src={stream.host?.profile?.profileImage || "/default-avatar.png"}
+                            src={
+                              stream.host?.profile?.profileImage ||
+                              "/default-avatar.png"
+                            }
                             alt={stream.host?.username}
                             className="w-8 h-8 rounded-full mr-2 border-2 border-gray-600"
                             onError={(e) => {
@@ -572,7 +586,8 @@ function Home() {
                             }}
                           />
                           <span className="text-gray-400 text-sm">
-                            {stream.host?.profile?.name || stream.host?.username}
+                            {stream.host?.profile?.name ||
+                              stream.host?.username}
                           </span>
                         </div>
 

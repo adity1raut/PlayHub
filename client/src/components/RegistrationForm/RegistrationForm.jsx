@@ -81,7 +81,7 @@ const useToast = () => {
 const RegistrationForm = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  
+
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     username: "",
@@ -151,7 +151,9 @@ const RegistrationForm = () => {
   const sendOTP = async () => {
     try {
       setLoading(true);
-  await axios.post(`${backendUrl}/api/auth/send-otp`, { email: formData.email });
+      await axios.post(`${backendUrl}/api/auth/send-otp`, {
+        email: formData.email,
+      });
       setOtpSent(true);
       setOtpTimer(300); // 5 minutes
       addToast("OTP sent to your email", "success");
@@ -167,7 +169,9 @@ const RegistrationForm = () => {
   const resendOTP = async () => {
     try {
       setLoading(true);
-  await axios.post(`${backendUrl}/api/auth/resend-otp`, { email: formData.email });
+      await axios.post(`${backendUrl}/api/auth/resend-otp`, {
+        email: formData.email,
+      });
       setOtpTimer(300);
       addToast("New OTP sent to your email", "success");
     } catch (error) {
@@ -189,7 +193,7 @@ const RegistrationForm = () => {
         otp: formData.otp,
       });
       addToast("OTP verified successfully", "success");
-      
+
       setTimeout(() => {
         setCurrentStep(3);
         setNextStepLoading(false);
@@ -222,13 +226,13 @@ const RegistrationForm = () => {
 
       if (res.data.success) {
         addToast("Account created successfully!", "success");
-        
+
         setTimeout(() => {
-          navigate("/login", { 
-            state: { 
+          navigate("/login", {
+            state: {
               message: "Account created successfully! Please log in.",
-              email: formData.email 
-            }
+              email: formData.email,
+            },
           });
         }, 2000);
       }
@@ -254,14 +258,13 @@ const RegistrationForm = () => {
         addToast("Please check username and email availability", "error");
         return;
       }
-      
+
       setNextStepLoading(true);
-      
+
       setTimeout(() => {
         setCurrentStep(2);
         setNextStepLoading(false);
       }, 800);
-      
     } else if (currentStep === 2 && otpSent) {
       verifyOTP();
     }
@@ -420,7 +423,10 @@ const RegistrationForm = () => {
         ) : (
           <>
             <span>Next Step</span>
-            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+            <ArrowRight
+              size={20}
+              className="group-hover:translate-x-1 transition-transform"
+            />
           </>
         )}
       </button>
@@ -625,7 +631,7 @@ const RegistrationForm = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-purple-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Gaming Background */}
       <GamingBackground />
-      
+
       <div className="bg-gray-800 rounded-xl border border-gray-700 shadow-2xl p-8 w-full max-w-md relative overflow-hidden z-10">
         {/* Subtle gaming pattern in background */}
         <div className="absolute inset-0 opacity-5">

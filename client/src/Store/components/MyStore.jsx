@@ -14,7 +14,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useProduct } from "../../context/ProductContext";
 import StoreForm from "./StoreForm";
 import StoreCard from "./StoreCard";
-import GamingBackground from "../../GamingBackground/GamingBackground"
+import GamingBackground from "../../GamingBackground/GamingBackground";
 
 function MyStore() {
   const navigate = useNavigate();

@@ -40,11 +40,11 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        await new Promise(resolve => setTimeout(resolve, 3000)); 
-        
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
         setIsLoading(false);
       } catch (error) {
-        console.error('App initialization error:', error);
+        console.error("App initialization error:", error);
         setIsLoading(false);
       }
     };
@@ -64,12 +64,14 @@ function App() {
 
           <Routes>
             {/* Public Routes */}
-            <Route path="/"
+            <Route
+              path="/"
               element={
                 <ProtectedRoute>
                   <GamingDashboard />
                 </ProtectedRoute>
-              } />
+              }
+            />
 
             <Route
               path="/login"
@@ -168,7 +170,8 @@ function App() {
             />
 
             {/* Product Routes */}
-            <Route path="/products"
+            <Route
+              path="/products"
               element={
                 <ProtectedRoute>
                   <PublicProducts />
@@ -176,13 +179,13 @@ function App() {
               }
             />
 
-            <Route path="/products/:productId"
+            <Route
+              path="/products/:productId"
               element={
                 <ProtectedRoute>
                   <ProductDetail />
                 </ProtectedRoute>
               }
-
             />
             <Route
               path="/add-product"

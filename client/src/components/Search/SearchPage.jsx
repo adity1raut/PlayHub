@@ -4,7 +4,7 @@ import PostCard from "../Post/PostCard";
 import axios from "axios";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
-import GamingBackground from "../../GamingBackground/GamingBackground"
+import GamingBackground from "../../GamingBackground/GamingBackground";
 
 const SearchPage = () => {
   const [query, setQuery] = useState("");

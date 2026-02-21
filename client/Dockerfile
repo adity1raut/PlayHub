@@ -1,20 +1,31 @@
-# Use Node.js official image
-FROM node:18-alpine
+# Stage 1: Build the React app
+FROM node:18-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
+# Copy package files and install dependencies
 COPY package*.json ./
+RUN npm ci --only=production=false
 
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application code
+# Copy source code
 COPY . .
 
-# Expose port 5173 (Vite's default dev server port)
-EXPOSE 5173
+# Build the production bundle
+RUN npm run build
 
-# Start the Vite development server with host binding and polling for Docker
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+# Stage 2: Serve the built files with a lightweight static server
+FROM node:18-alpine AS runner
+
+WORKDIR /app
+
+# Install serve to host static files
+RUN npm install -g serve
+
+# Copy built assets from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Expose port 4173 (serve default) or 80
+EXPOSE 4173
+
+# Serve the built app
+CMD ["serve", "-s", "dist", "-l", "4173"]

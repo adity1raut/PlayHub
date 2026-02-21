@@ -409,7 +409,7 @@ const StreamsList = () => {
               onClick={() => setActiveTab("live")}
               className={`px-6 py-4 border-b-2 font-medium transition-colors ${
                 activeTab === "live"
-                  ? "border-red-500 text-red-400 bg-gray-700"
+                  ? "border-purple-500 text-purple-400 bg-gray-700"
                   : "border-transparent text-gray-400 hover:text-gray-300"
               }`}
             >
@@ -422,7 +422,7 @@ const StreamsList = () => {
                 onClick={() => setActiveTab("my-streams")}
                 className={`px-6 py-4 border-b-2 font-medium transition-colors ${
                   activeTab === "my-streams"
-                    ? "border-red-500 text-red-400 bg-gray-700"
+                    ? "border-purple-500 text-purple-400 bg-gray-700"
                     : "border-transparent text-gray-400 hover:text-gray-300"
                 }`}
               >
@@ -445,7 +445,7 @@ const StreamsList = () => {
                   placeholder="Search streams or creators..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400"
                 />
               </div>
 
@@ -454,7 +454,7 @@ const StreamsList = () => {
                   onClick={() => setViewMode("grid")}
                   className={`p-3 rounded-lg transition-colors ${
                     viewMode === "grid"
-                      ? "bg-red-600 text-white"
+                      ? "bg-purple-600 text-white"
                       : "bg-gray-700 text-gray-400 hover:text-gray-300 border border-gray-600"
                   }`}
                 >
@@ -464,7 +464,7 @@ const StreamsList = () => {
                   onClick={() => setViewMode("list")}
                   className={`p-3 rounded-lg transition-colors ${
                     viewMode === "list"
-                      ? "bg-red-600 text-white"
+                      ? "bg-purple-600 text-white"
                       : "bg-gray-700 text-gray-400 hover:text-gray-300 border border-gray-600"
                   }`}
                 >
@@ -478,7 +478,7 @@ const StreamsList = () => {
         {/* Content */}
         {loading ? (
           <div className="flex justify-center items-center py-12">
-            <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : filteredStreams.length === 0 ? (
           <div className="text-center py-12">

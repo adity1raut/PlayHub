@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -32,30 +31,8 @@ import Checkout from "./Store/order/Checkout";
 import { AuthProvider } from "./context/AuthContext";
 import StreamViewer from "./Stream/StreamViewer";
 import StreamsList from "./Stream/StreamsList";
-import Loader from "./components/Loader/Loader";
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-
-        setIsLoading(false);
-      } catch (error) {
-        console.error("App initialization error:", error);
-        setIsLoading(false);
-      }
-    };
-
-    initializeApp();
-  }, []);
-
-  if (isLoading) {
-    return <Loader />;
-  }
-
   return (
     <NotificationProvider>
       <AuthProvider>

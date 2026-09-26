@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import axios from "axios";
-
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+import { API_URL as backendUrl } from "../lib/config";
+import { detachPushFromServer } from "../lib/push";
 
 const AuthContext = createContext();
 
@@ -9,42 +9,42 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await axios.get(`${backendUrl}/api/auth/profile`, {
-          withCredentials: true,
-        });
-        if (res.data.success) {
-          setUser(res.data.data);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
+  // Re-read the signed-in user from the server (after follow, profile edits, …).
+  // Only a 401 signs the user out; a network blip keeps the current session.
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await axios.get(`${backendUrl}/api/auth/profile`);
+      const next = res.data.success ? res.data.data : null;
+      setUser(next);
+      return next;
+    } catch (error) {
+      if (error.response?.status === 401 || error.response?.status === 404) {
         setUser(null);
-      } finally {
-        setLoading(false);
+        return null;
       }
-    };
-    fetchProfile();
+      return undefined;
+    }
   }, []);
+
+  useEffect(() => {
+    refreshUser().finally(() => setLoading(false));
+  }, [refreshUser]);
 
   const login = async (identifier, password) => {
     try {
-      const res = await axios.post(
-        `${backendUrl}/api/auth/login`,
-        { identifier, password },
-        { withCredentials: true },
-      );
-      if (res.status === 200) {
-        const profileRes = await axios.get(`${backendUrl}/api/auth/profile`, {
-          withCredentials: true,
-        });
-        if (profileRes.data.success) {
-          setUser(profileRes.data.data);
-        }
-        return { success: true };
+      await axios.post(`${backendUrl}/api/auth/login`, { identifier, password });
+      const profile = await refreshUser();
+      if (profile === undefined) {
+        return { success: false, message: "Couldn't reach the server. Please try again." };
       }
+      if (!profile) {
+        return {
+          success: false,
+          message:
+            "Signed in, but the session cookie was not kept. Check CLIENT_URL / COOKIE_SAMESITE on the server.",
+        };
+      }
+      return { success: true };
     } catch (error) {
       return {
         success: false,
@@ -55,27 +55,25 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await axios.post(
-        `${backendUrl}/api/auth/logout`,
-        {},
-        { withCredentials: true },
-      );
-      setUser(null);
+      await detachPushFromServer();
+      await axios.post(`${backendUrl}/api/auth/logout`, {});
     } catch (error) {
       console.error("Logout error:", error);
+    } finally {
+      setUser(null);
     }
   };
 
-  const updateProfile = async (formData) => {
+  // The API expects JSON: { name, bio, email, profileImage?, coverImage? } where images are data: URIs
+  const updateProfile = async (data) => {
     try {
-      const res = await axios.put(`${backendUrl}/api/auth/profile`, formData, {
-        withCredentials: true,
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const body = data instanceof FormData ? Object.fromEntries(data.entries()) : data;
+      const res = await axios.put(`${backendUrl}/api/auth/profile`, body);
       if (res.data.success) {
         setUser(res.data.data);
-        return { success: true, message: res.data.message };
+        return { success: true, message: res.data.message, user: res.data.data };
       }
+      return { success: false, message: res.data.message };
     } catch (error) {
       return {
         success: false,
@@ -88,9 +86,11 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         loading,
         login,
         logout,
+        refreshUser,
         updateProfile,
         isAuthenticated: !!user,
       }}

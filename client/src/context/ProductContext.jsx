@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "./AuthContext";
+import { API_URL as backendUrl } from "../lib/config";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const ProductContext = createContext();
 
@@ -497,14 +497,9 @@ export function ProductProvider({ children }) {
       return sum + quantity;
     }, 0);
 
-    // Update global cart count if function exists
-    if (typeof window !== "undefined" && window.updateCartCount) {
-      window.updateCartCount(totalItems);
-    }
-
-    // Also update document title or favicon if needed
+    // Show the item count in the tab title, e.g. "(3) PlayHub"
     if (typeof document !== "undefined") {
-      const title = document.title.replace(/\(\d+\)/, "");
+      const title = document.title.replace(/^\(\d+\)\s*/, "");
       document.title = totalItems > 0 ? `(${totalItems}) ${title}` : title;
     }
   };
@@ -716,7 +711,7 @@ export function ProductProvider({ children }) {
 
     setCartLoading(true);
     try {
-      const response = await axios.delete(
+      await axios.delete(
         `${backendUrl}/api/stores/cart/clear`,
         {
           withCredentials: true,

@@ -29,10 +29,22 @@ export default [
       ...react.configs["jsx-runtime"].rules,
       ...reactHooks.configs.recommended.rules,
       "react/jsx-no-target-blank": "off",
+      // Components aren't typed with PropTypes in this project
+      "react/prop-types": "off",
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },
       ],
     },
+  },
+  // Service worker runs in the worker scope (self, clients, registration…)
+  {
+    files: ["public/sw.js"],
+    languageOptions: { globals: globals.serviceworker },
+  },
+  // Build tooling runs in Node
+  {
+    files: ["vite.config.js", "eslint.config.js"],
+    languageOptions: { globals: globals.node },
   },
 ];

@@ -1,5 +1,268 @@
 @import "tailwindcss";
 
-* {
-  box-sizing: border-box;
+/* Dark mode is class-based so the pre-paint script in index.html can set it */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ----------------------------------------------------------------------------
+   Design tokens — light is the base, .dark overrides. Every component reads
+   these through the Tailwind color names below (bg-background, text-primary…)
+---------------------------------------------------------------------------- */
+:root {
+  --background: #f8fafc;
+  --foreground: #172033;
+  --card: #ffffff;
+  --card-foreground: #172033;
+  --popover: #ffffff;
+  --popover-foreground: #172033;
+  --primary: #167a5c;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #172033;
+  --muted: #f1f5f9;
+  --muted-foreground: #5b6679;
+  --accent: #ecf2f7;
+  --accent-foreground: #172033;
+  --destructive: #c2414b;
+  --border: #dbe4ef;
+  --border-strong: #b6c3d4;
+  --input: #cbd5e1;
+  --ring: #167a5c;
+  --faint: #6f7b8e;
+  --info: #0369a1;
+  --success: #167a5c;
+  --warning: #b45309;
+  --overlay: #0f172a73;
+  --grid: #1720330d;
+  --sidebar: #f1f5f9;
+  --glow: #167a5c2e;
+  --panel-shadow: 0 24px 60px #0f172a1a;
+  --float-shadow: 0 10px 28px #0f172a14;
+}
+
+.dark {
+  --background: #0a0f17;
+  --foreground: #e9edf5;
+  --card: #0e141e;
+  --card-foreground: #e9edf5;
+  --popover: #111827;
+  --popover-foreground: #e9edf5;
+  --primary: #5eead4;
+  --primary-foreground: #03201a;
+  --secondary: #162033;
+  --secondary-foreground: #e9edf5;
+  --muted: #141c2a;
+  --muted-foreground: #8e98aa;
+  --accent: #152031;
+  --accent-foreground: #e9edf5;
+  --destructive: #ff6978;
+  --border: #27303e;
+  --border-strong: #3a4658;
+  --input: #2f3a4b;
+  --ring: #5eead4;
+  --faint: #6f798b;
+  --info: #71d8ff;
+  --success: #5eead4;
+  --warning: #ffb36a;
+  --overlay: #000000b8;
+  --grid: #94a3b80b;
+  --sidebar: #070b12;
+  --glow: #5eead42e;
+  --panel-shadow: 0 30px 80px #00000073;
+  --float-shadow: 0 10px 28px #0006;
+}
+
+@theme inline {
+  --font-sans: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-faint: var(--faint);
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-overlay: var(--overlay);
+  --color-sidebar: var(--sidebar);
+
+  --shadow-panel: var(--panel-shadow);
+  --shadow-float: var(--float-shadow);
+
+  --animate-blink: blink 1.1s steps(2, start) infinite;
+  --animate-slide-up: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in-right: fade-in-right 0.3s ease-out both;
+  --animate-shake: shake 0.4s ease-in-out;
+  --animate-scan: scan 2.4s ease-in-out infinite;
+
+  @keyframes blink {
+    to {
+      visibility: hidden;
+    }
+  }
+  @keyframes slide-up {
+    0% {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in-right {
+    0% {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes shake {
+    0%,
+    to {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    75% {
+      transform: translateX(4px);
+    }
+  }
+  @keyframes scan {
+    0%,
+    to {
+      transform: scaleY(0.35);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+}
+
+/* ---------------------------------------------------------------- base --- */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html,
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100%;
+    font-size: 0.875rem;
+    font-feature-settings: "calt" 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100dvh;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 28%, transparent);
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  input[type="search"]::-webkit-search-cancel-button {
+    appearance: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--faint);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+}
+
+/* ----------------------------------------------------------- utilities --- */
+@utility eyebrow {
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+@utility glow {
+  box-shadow: 0 0 22px var(--glow);
+}
+
+@utility bg-grid {
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility text-glow {
+  text-shadow: 0 0 28px var(--glow);
+}
+
+@utility pb-mobile-nav {
+  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
 }

@@ -1,370 +1,169 @@
-# GAME PORTAL - Livestream Social Platform
+# PlayHub
 
-A comprehensive full-stack social media and e-commerce platform designed for gaming communities. This platform combines social networking, real-time communication, live streaming, and e-commerce functionality with a modern gaming-inspired dark theme.
+[![CI](https://github.com/adity1raut/PlayHub/actions/workflows/ci.yml/badge.svg)](https://github.com/adity1raut/PlayHub/actions/workflows/ci.yml)
 
----
-
-## Table of Contents
-
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Backend Overview](#backend-overview)
-- [Frontend Overview](#frontend-overview)
-- [Database Models](#database-models)
-- [Real-time Features](#real-time-features)
-- [Payment Integration](#payment-integration)
-- [Setup & Installation](#setup--installation)
-- [API Endpoints](#api-endpoints)
-- [Environment Variables](#environment-variables)
-- [Contributing](#contributing)
-- [License](#license)
-
----
+PlayHub is a social platform for gamers. Chat with friends, go live on camera, share posts and clips, and run your own store, all in one app that updates in real time.
 
 ## Features
 
-### 🎮 Core Social Features
-- **User Authentication**: Complete signup/login system with JWT tokens and email verification
-- **User Profiles**: Customizable profiles with bio, profile/cover images, followers/following system
-- **Posts & Feed**: Create, like, comment, and delete posts with image/video upload support
-- **Real-time Chat**: Direct messaging with typing indicators and message status
-- **Notifications**: Real-time notifications for likes, comments, follows, messages, and store activities
+### Accounts & profiles
+- Sign up with email verification (6-digit code), sign in with email or username
+- Password reset by emailed code
+- Profiles with avatar, cover image, bio, posts, followers and following
+- Follow and unfollow players; counts update live
 
-### 🛒 E-commerce Platform
-- **Store Management**: Users can create and manage their own stores
-- **Product Management**: Add, edit, delete products with multiple images and inventory tracking
-- **Shopping Cart**: Add to cart, update quantities, manage multiple store items
-- **Wishlist**: Save favorite products for later
-- **Order Management**: Complete order lifecycle with tracking and status updates
-- **Payment Processing**: Secure payments via Razorpay integration
-- **Analytics**: Store performance analytics and sales tracking
+### Feed
+- Share posts with images or video
+- Like and comment; counts update live for everyone
+- "N new posts" button when others post while you're reading
+- Shareable links to single posts, plus a "My posts" page
 
-### 🎯 Gaming Features
-- **Live Streams**: Share and view live gaming streams with real-time chat
-- **Arena Events**: Gaming tournaments and matchmaking system
-- **Gaming Dashboard**: Centralized hub for all gaming activities
+### Chat
+- One-to-one realtime messaging
+- Typing indicators and read receipts
+- Find people by username or name and start a chat from their profile
 
-### 🎨 UI/UX Features
-- **Gaming-inspired Dark Theme**: Modern purple/pink gradient design
-- **Responsive Design**: Optimized for desktop, tablet, and mobile
-- **Loading States**: Smooth loading animations and skeletons
-- **Error Handling**: User-friendly error messages and retry mechanisms
-- **Toast Notifications**: Real-time feedback for user actions
+### Live streaming
+- Go live from the browser with **camera, microphone and screen share**
+- Switch camera or mic mid-stream, mute, turn the camera off, end the stream
+- Viewers watch in real time with live chat and a live viewer count
+- Followers get a "Live now" alert the moment you start
+- Built on an SFU (mediasoup): you upload once, and the server relays to every viewer in the quality their connection can handle
 
----
+### Notifications
+- Alerts for new followers, likes, comments, messages, live streams, new orders, order confirmations and product reviews
+- In-app pop-ups with sound, plus a notifications page with read/unread filters
+- **Phone and desktop push notifications**, even when PlayHub is closed (installable app; on iPhone, use "Add to Home Screen")
+- No alerts for your own actions, and no repeat spam from follow/unfollow or like/unlike
 
-## Tech Stack
+### Marketplace
+- Open a store with a logo, and add products with up to 5 images
+- Browse, search and filter products; trending products
+- Wishlist, cart, saved delivery addresses
+- Checkout with **Razorpay**
+- Ratings and reviews
+- Store analytics, and instant alerts to sellers when an order comes in
+- Follow stores
 
-### Backend
-- **Runtime**: Node.js with Express.js
-- **Database**: MongoDB with Mongoose ODM
-- **Authentication**: JWT tokens with HTTP-only cookies
-- **Real-time**: Socket.io for live features
-- **File Upload**: Multer + Cloudinary integration
-- **Email**: Nodemailer for email services
-- **Payments**: Razorpay for secure transactions
-- **Security**: CORS, rate limiting, input validation
+### Search
+- Find people and posts from one search page
 
-### Frontend
-- **Framework**: React 18 with Vite build tool
-- **Routing**: React Router v6 with protected routes
-- **Styling**: Tailwind CSS with custom gaming theme
-- **State Management**: React Context API (Auth, Store, Product, Notification)
-- **HTTP Client**: Axios with interceptors
-- **Icons**: Lucide React icon library
-- **Notifications**: React Toastify
-- **Real-time**: Socket.io client
+### Design
+- Terminal-inspired look: monospace type, sharp edges, teal on navy
+- Dark, light and system themes
+- Works on phones (bottom navigation) and desktops (sidebar workspace)
 
-### Infrastructure
-- **Media Storage**: Cloudinary for images/videos
-- **Payment Gateway**: Razorpay for transactions
-- **Email Service**: Gmail SMTP via Nodemailer
-- **Development**: Hot reload, proxy setup, ESLint configuration
+## Tech stack
 
----
+| Part | Technology |
+| --- | --- |
+| Frontend | React 18, Vite 6, Tailwind CSS 4, React Router 7, Socket.IO client, mediasoup-client |
+| Backend | Node.js 22, Express 4, Socket.IO 4, MongoDB + Mongoose 8, mediasoup (SFU) |
+| Services | Cloudinary (media), Gmail / Nodemailer (email codes), Razorpay (payments), Web Push |
+| Auth | JWT in an httpOnly cookie |
+| CI | GitHub Actions |
 
-## Project Structure
-
-```
-livestream/
-├── backend/                    # Express.js API server
-│   ├── config/                # Service configurations
-│   │   ├── cloudinary.js      # Cloudinary setup
-│   │   ├── multrer.js         # File upload configuration
-│   │   ├── nodeMailer.js      # Email service setup
-│   │   └── rozapay.js         # Razorpay payment gateway
-│   ├── controllers/           # Business logic
-│   │   ├── Chat/              # Chat and messaging
-│   │   ├── Notification/      # Notification system
-│   │   ├── Post/              # Posts and social features
-│   │   ├── Profile/           # User profile management
-│   │   ├── Store/             # E-commerce functionality
-│   │   ├── Stream/            # Live streaming
-│   │   └── User/              # User authentication
-│   ├── db/
-│   │   └── ConnectDB.js       # MongoDB connection
-│   ├── middleware/
-│   │   ├── Auth.js            # JWT authentication
-│   │   └── verifyStore.js     # Store ownership verification
-│   ├── models/                # Mongoose schemas
-│   │   ├── User.models.js     # User schema
-│   │   ├── Post.models.js     # Post schema
-│   │   ├── Store.models.js    # Store schema
-│   │   ├── Product.models.js  # Product schema
-│   │   ├── Order.models.js    # Order schema
-│   │   ├── Cart.models.js     # Shopping cart schema
-│   │   └── ...               # Other models
-│   ├── route/                 # API route definitions
-│   ├── services/              # Business services
-│   ├── socket/                # Socket.io handlers
-│   ├── uploads/               # Local file storage
-│   └── server.js              # Application entry point
-├── client/                    # React frontend
-│   ├── public/               # Static assets
-│   ├── src/
-│   │   ├── components/       # React components
-│   │   │   ├── Navbar/       # Navigation component
-│   │   │   ├── ProfilePage/  # User profile components
-│   │   │   ├── Post/         # Post-related components
-│   │   │   ├── ChatPage/     # Chat application
-│   │   │   ├── Notification/ # Notification system
-│   │   │   ├── LoginForm/    # Authentication forms
-│   │   │   ├── RegistrationForm/
-│   │   │   ├── ForgetPassword/
-│   │   │   └── Footer/
-│   │   ├── Store/           # E-commerce components
-│   │   │   ├── components/  # Store management
-│   │   │   ├── product/     # Product management
-│   │   │   ├── search/      # Product search & wishlist
-│   │   │   ├── Card/        # Shopping cart
-│   │   │   └── analysis/    # Store analytics
-│   │   ├── context/         # React Context providers
-│   │   │   ├── AuthContext.jsx
-│   │   │   ├── StoreContext.jsx
-│   │   │   ├── ProductContext.jsx
-│   │   │   ├── NotificationContext.jsx
-│   │   │   └── SocketContext.jsx
-│   │   ├── assets/          # Images and media
-│   │   ├── styles.css       # Custom CSS
-│   │   ├── App.jsx          # Main application component
-│   │   └── main.jsx         # React entry point
-│   ├── vite.config.js       # Vite configuration
-│   ├── package.json         # Dependencies
-│   └── README.md            # Client documentation
-├── server/                  # Streaming server config
-│   └── stream.conf          # NGINX RTMP configuration
-└── README.md               # This file
-```
-
----
-
-## Database Models
-
-### Core Models
-- **User**: Authentication, profile, social connections
-- **Post**: Social media posts with likes/comments
-- **Message**: Direct messaging system
-- **Conversation**: Chat conversations
-- **Notification**: Real-time notifications
-
-### E-commerce Models
-- **Store**: User-owned stores
-- **Product**: Store products with images, pricing, inventory
-- **Cart**: Shopping cart with multiple store support
-- **Order**: Complete order lifecycle management
-- **Address**: Delivery addresses
-
-### Features
-- MongoDB indexes for performance
-- Mongoose middleware for validation
-- Aggregation pipelines for analytics
-- GeoJSON for location data
-
----
-
-## Real-time Features
-
-### Socket.io Integration
-- **Chat System**: Real-time messaging with typing indicators
-- **Notifications**: Live notification delivery
-- **Live Streams**: Real-time stream events
-- **User Presence**: Online/offline status tracking
-
-### Event Types
-- New messages and conversations
-- User typing indicators
-- Notification delivery
-- Stream start/end events
-- User connection status
-
----
-
-## Payment Integration
-
-### Razorpay Features
-- Secure payment processing
-- Order creation and verification
-- Payment status tracking
-- Refund handling
-- Multi-currency support
-
-### Order Management
-- Stock validation and updates
-- Order status tracking
-- Delivery management
-- Payment verification
-- Order history
-
----
-
-## Backend Overview
-
-### Architecture
-- **RESTful API** design with Express.js
-- **JWT Authentication** with HTTP-only cookies
-- **Role-based Access Control** for store owners
-- **File Upload** handling with Multer and Cloudinary
-- **Real-time Communication** via Socket.io
-- **Payment Processing** with Razorpay integration
-
-### Key Features
-- Input validation and sanitization
-- Error handling middleware
-- Rate limiting for API protection
-- CORS configuration for cross-origin requests
-- Database connection pooling
-- Cloudinary integration for media management
-
----
-
-## Frontend Overview
-
-### Architecture
-- **React 18** with functional components and hooks
-- **Context API** for global state management
-- **Protected Routes** for authenticated users
-- **Responsive Design** with Tailwind CSS
-- **Real-time Updates** via Socket.io client
-
-### Key Components
-- **Navbar**: Navigation with user menu and notifications
-- **Dashboard**: Gaming-inspired home page
-- **Profile**: User profile management with image uploads
-- **Chat**: Real-time messaging application
-- **Store**: Complete e-commerce interface
-- **Products**: Product browsing and management
-- **Cart**: Shopping cart with checkout flow
-- **Orders**: Order history and tracking
-
-### State Management
-- **AuthContext**: User authentication and profile
-- **StoreContext**: Store management
-- **ProductContext**: Product and cart operations
-- **NotificationContext**: Real-time notifications
-
----
-
-## Setup & Installation
+## Getting started
 
 ### Prerequisites
-- Node.js (v18+)
-- MongoDB (local or Atlas)
-- Cloudinary account
-- Razorpay account
-- Gmail account for email services
+- **Node.js 22+**
+- **MongoDB**: a local install or MongoDB Atlas
+- Accounts for **Cloudinary**, **Razorpay** (test keys are fine), and a **Gmail App Password** for sending email codes
 
-### 1. Clone Repository
-```bash
-git clone https://github.com/aditya-raut/livestream.git
-cd livestream
-```
+### 1. Backend
 
-### 2. Backend Setup
 ```bash
 cd backend
+cp .env.example .env     # then fill in the values (see below)
 npm install
-
-# Start development server
-npm run dev
+npm run dev              # API on http://localhost:4000
 ```
 
-### 3. Frontend Setup
+### 2. Frontend
+
 ```bash
 cd client
+echo 'VITE_BACKEND_URL="http://localhost:4000"' > .env
 npm install
-
-# Start development server
-npm run dev
+npm run dev              # app on http://localhost:5173
 ```
 
-### 4. Access Application
-- Frontend: `http://localhost:5173`
-- Backend API: `http://localhost:5000`
+Open http://localhost:5173, create an account, and you're in.
 
----
+## Configuration
 
-## Environment Variables
+### Backend (`backend/.env`)
 
-### Backend (.env)
-```env
-# Database
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret_key
+| Variable | Required | Description |
+| --- | --- | --- |
+| `MONGODB_URI` | yes | MongoDB connection string |
+| `JWT_SECRET` | yes | Secret used to sign login tokens |
+| `CLIENT_URL` | yes | Frontend URL(s) allowed to connect, comma-separated |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | yes | Image and video uploads |
+| `MAIL_SERVICE`, `MAIL_USER`, `MAIL_PASS` | yes | Email for verification codes (`gmail` + a Gmail App Password) |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | yes | Payments |
+| `PORT` | no | API port (default `4000`) |
+| `NODE_ENV` | no | `development` locally, `production` when deployed |
+| `COOKIE_SAMESITE`, `COOKIE_SECURE` | no | Cookie policy; set `COOKIE_SAMESITE=none` when the frontend and API are on different domains |
+| `SFU_PORT`, `SFU_ANNOUNCED_IP` | no | Live-video port (default `44444`) and the public IP browsers connect to (auto-detected locally) |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | no | Push-notification keys (generated automatically if unset) |
 
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+### Frontend (`client/.env`)
 
-# Razorpay
-RAZORPAY_KEY_ID=your_razorpay_key_id
-RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+| Variable | Description |
+| --- | --- |
+| `VITE_BACKEND_URL` | Backend URL, e.g. `http://localhost:4000`. Leave empty to use the dev proxy. |
 
-# Email (Gmail SMTP)
-EMAIL_USER=your_gmail_address
-EMAIL_PASS=your_gmail_app_password
+## Scripts
 
-# Server
-PORT=5000
-NODE_ENV=development
+| Where | Command | What it does |
+| --- | --- | --- |
+| backend | `npm run dev` | Start the API with auto-reload |
+| backend | `npm start` | Start the API |
+| backend | `npm test` | Run the tests (see below) |
+| backend | `npm run check` | Syntax-check every backend file |
+| client | `npm run dev` | Start the app with hot reload |
+| client | `npm run build` | Production build into `client/dist` |
+| client | `npm run lint` | Lint the frontend |
+| client | `npm run preview` | Preview the production build |
+
+## Tests & CI
+
+- `backend/tests/otp.test.js` covers the email-code rules (6 digits, expiry, resend, attempt limit). It runs anywhere and needs no database.
+- `backend/tests/realtime.test.js` is an end-to-end test covering follows, posts, stores, orders, reviews and live streams: notifications and live socket updates. It runs only when `TEST_MONGODB_URI` points at a **throwaway** database whose name contains `test`:
+
+  ```bash
+  TEST_MONGODB_URI=mongodb://127.0.0.1:27017/playhub_test npm test
+  ```
+
+**GitHub Actions** (`.github/workflows/ci.yml`) runs on every push and on pull requests to `main`:
+- **Client:** install, lint, build
+- **Backend:** install, syntax check, and all tests against a MongoDB service container
+
+## Deployment notes
+
+- Serve the app over **HTTPS**. Going live (camera/mic) and push notifications need it.
+- Open the live-video port (`SFU_PORT`, default `44444`, UDP and TCP) and set `SFU_ANNOUNCED_IP` to the server's public IP.
+- Hosting the frontend and API on different domains? Set `VITE_BACKEND_URL` to the API URL, and `CLIENT_URL` + `COOKIE_SAMESITE=none` on the backend.
+- Set fixed `VAPID_*` keys in production so phones stay subscribed across deploys.
+
+## Project structure
+
+```
+backend/src/
+  server.js, routes.js      app entry + API router
+  config/ db/ middleware/ utils/
+  socket/                   realtime events
+  sfu/                      live-video server
+  modules/                  auth · chat · posts · notifications · stream · store
+client/src/
+  main.jsx, App.jsx         app entry + routes
+  components/ui, layout/    shared UI
+  context/ lib/ routes/     app state, helpers, route guards
+  features/                 landing · auth · dashboard · chat · posts · profile ·
+                            notifications · search · stream · store
+.github/workflows/ci.yml    CI pipeline
+docs/ARCHITECTURE.md        how the pieces connect (for developers)
 ```
 
----
-
-## Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Code Style
-- Use ESLint configuration provided
-- Follow React best practices
-- Write meaningful commit messages
-- Add comments for complex logic
-
----
-
-## License
-
-This project is licensed under the ISC License.
-
-**© 2025 Aditya Raut**
-
----
-
-## Acknowledgments
-
-- Gaming community for inspiration
-- Open source contributors
-- React and Node.js communities
-- Tailwind CSS for the design system
-- Lucide React for beautiful icons
-
----
-
+For how auth, sockets, live video and realtime events work under the hood, see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.

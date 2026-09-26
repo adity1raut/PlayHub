@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "./AuthContext";
+import { API_URL as backendUrl } from "../lib/config";
 
 const StoreContext = createContext();
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 export function StoreProvider({ children }) {
   const { isAuthenticated } = useAuth();
@@ -51,35 +51,19 @@ export function StoreProvider({ children }) {
   };
 
   // Convert image file to base64
-  const convertImageToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
-  };
 
   const createStore = async (storeData) => {
     try {
       setLoading(true);
       console.log("Creating store with data:", storeData);
 
-      // Prepare data for API
-      const apiData = {
-        name: storeData.name,
-        description: storeData.description || "",
-      };
+      // The API takes multipart form data with the logo file under "logo"
+      const formData = new FormData();
+      formData.append("name", storeData.name ?? "");
+      formData.append("description", storeData.description ?? "");
+      if (storeData.logo instanceof File) formData.append("logo", storeData.logo);
 
-      // Convert logo to base64 if provided
-      if (storeData.logo && storeData.logo instanceof File) {
-        apiData.logoBase64 = await convertImageToBase64(storeData.logo);
-      }
-
-      const res = await axios.post(`${backendUrl}/api/stores`, apiData, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await axios.post(`${backendUrl}/api/stores`, formData);
 
       setUserStore(res.data);
       return { success: true, data: res.data };
@@ -87,6 +71,7 @@ export function StoreProvider({ children }) {
       console.error("Create store error:", error);
       const message =
         error.response?.data?.error ||
+        error.response?.data?.message ||
         error.message ||
         "Failed to create store";
       setError(message);
@@ -101,21 +86,13 @@ export function StoreProvider({ children }) {
       setLoading(true);
       console.log("Updating store with data:", storeData);
 
-      // Prepare data for API
-      const apiData = {
-        name: storeData.name,
-        description: storeData.description,
-      };
+      // The API takes multipart form data with the logo file under "logo"
+      const formData = new FormData();
+      formData.append("name", storeData.name ?? "");
+      formData.append("description", storeData.description ?? "");
+      if (storeData.logo instanceof File) formData.append("logo", storeData.logo);
 
-      // Convert logo to base64 if provided
-      if (storeData.logo && storeData.logo instanceof File) {
-        apiData.logoBase64 = await convertImageToBase64(storeData.logo);
-      }
-
-      const res = await axios.put(`${backendUrl}/api/stores/${id}`, apiData, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await axios.put(`${backendUrl}/api/stores/${id}`, formData);
 
       setUserStore(res.data);
       return { success: true, data: res.data };
@@ -123,6 +100,7 @@ export function StoreProvider({ children }) {
       console.error("Update store error:", error);
       const message =
         error.response?.data?.error ||
+        error.response?.data?.message ||
         error.message ||
         "Failed to update store";
       setError(message);
@@ -144,6 +122,7 @@ export function StoreProvider({ children }) {
       console.error("Delete store error:", error);
       const message =
         error.response?.data?.error ||
+        error.response?.data?.message ||
         error.message ||
         "Failed to delete store";
       setError(message);
@@ -268,7 +247,7 @@ export function StoreProvider({ children }) {
       const res = await axios.get(`${backendUrl}/api/stores/following/stores`, {
         withCredentials: true,
       });
-      setFollowedStores(res.data.map((store) => store._id));
+      setFollowedStores((res.data.stores ?? []).map((store) => store._id));
       return { success: true, data: res.data };
     } catch (error) {
       console.error("Error fetching following stores:", error);

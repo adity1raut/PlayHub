@@ -1,264 +1,108 @@
-import React, { useState, useEffect } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import PublicRoute from "./context/PublicRoute";
-import ProtectedRoute from "./context/ProtectedRoute";
-import ProfilePage from "./components/ProfilePage/ProfilePage";
-import Login from "./components/LoginForm/Login";
-import RegistrationForm from "./components/RegistrationForm/RegistrationForm";
-import GamingDashboard from "./components/Home";
-import Navbar from "./components/Navbar/Navbar";
-import ForgetPassword from "./components/ForgetPassword/ForgetPass";
-import ChatApp from "./components/ChatPAge/chat/ChatApplication";
-import NotificationPage from "./components/Notification/NotificationsPage";
-import { NotificationProvider } from "./context/NotificationContext";
-import Footer from "./components/Footer/Footer";
-import Feed from "./components/Post/PostFeed";
-import MyPosts from "./components/Post/MyPosts";
-import MyStore from "./Store/components/MyStore";
-import AllStores from "./Store/components/AllStores";
-import AddProduct from "./Store/product/AddProduct";
-import EditProduct from "./Store/product/EditProduct";
-import ProductDetail from "./Store/product/ProductDetail";
-import PublicProducts from "./Store/product/PublicProduct";
-import Cart from "./Store/Card/Cart";
-import { ProductSearch } from "./Store/search/ProductSearch";
-import { Wishlist } from "./Store/search/Wishlist";
-import Checkout from "./Store/order/Checkout";
-import { AuthProvider } from "./context/AuthContext";
-import StreamViewer from "./Stream/StreamViewer";
-import StreamsList from "./Stream/StreamsList";
-import Loader from "./components/Loader/Loader";
+import { lazy, Suspense } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import PublicRoute from "./routes/PublicRoute";
+import ProtectedRoute, { FullScreenLoader } from "./routes/ProtectedRoute";
+import { useAuth } from "./context/AuthContext";
+import AppShell from "./components/layout/AppShell";
+import NotificationToaster from "./features/notifications/NotificationToaster";
+import LandingPage from "./features/landing/LandingPage";
+import Login from "./features/auth/Login";
+import RegistrationForm from "./features/auth/Register";
+import ForgetPassword from "./features/auth/ForgotPassword";
+import Dashboard from "./features/dashboard/Dashboard";
+import ChatApp from "./features/chat/ChatApplication";
+import ProfilePage from "./features/profile/ProfilePage";
+import NotificationPage from "./features/notifications/NotificationsPage";
+import SearchPage from "./features/search/SearchPage";
+import Feed from "./features/posts/PostFeed";
+import MyPosts from "./features/posts/MyPosts";
+import SinglePost from "./features/posts/SinglePost";
+import MyStore from "./features/store/stores/MyStore";
+import AllStores from "./features/store/stores/AllStores";
+import AddProduct from "./features/store/products/AddProduct";
+import EditProduct from "./features/store/products/EditProduct";
+import ProductDetail from "./features/store/products/ProductDetail";
+import PublicProducts from "./features/store/products/PublicProduct";
+import Cart from "./features/store/cart/Cart";
+import { ProductSearch } from "./features/store/products/ProductSearch";
+import { Wishlist } from "./features/store/cart/Wishlist";
+import Checkout from "./features/store/checkout/Checkout";
+import StreamsList from "./features/stream/StreamsList";
+import { LoadingBlock } from "./components/ui";
+
+// Live video (WebRTC/SFU client) is only downloaded when a stream is opened
+const StreamViewer = lazy(() => import("./features/stream/StreamViewer"));
+
+/** "/" shows the landing page to guests and sends signed-in users to their workspace. */
+function RootRoute() {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return <FullScreenLoader />;
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />;
+}
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-
-        setIsLoading(false);
-      } catch (error) {
-        console.error("App initialization error:", error);
-        setIsLoading(false);
-      }
-    };
-
-    initializeApp();
-  }, []);
-
-  if (isLoading) {
-    return <Loader />;
-  }
-
   return (
-    <NotificationProvider>
-      <AuthProvider>
-        <Router>
-          <Navbar />
+    <Router>
+      {/* Lets realtime notification pop-ups navigate inside the app */}
+      <NotificationToaster />
+      <Routes>
+        <Route path="/" element={<RootRoute />} />
 
-          <Routes>
-            {/* Public Routes */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <GamingDashboard />
-                </ProtectedRoute>
-              }
-            />
+        {/* Public (signed-out) routes */}
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/signup" element={<PublicRoute><RegistrationForm /></PublicRoute>} />
+        <Route path="/registration" element={<Navigate to="/signup" replace />} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgetPassword /></PublicRoute>} />
 
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/signup"
-              element={
-                <PublicRoute>
-                  <RegistrationForm />
-                </PublicRoute>
-              }
-            />
+        {/* Signed-in workspace */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppShell />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/chat" element={<ChatApp />} />
+          <Route path="/chat/:conversationId" element={<ChatApp />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/notification" element={<NotificationPage />} />
+          <Route path="/notifications" element={<Navigate to="/notification" replace />} />
 
-            <Route
-              path="/forgot-password"
-              element={
-                <PublicRoute>
-                  <ForgetPassword />
-                </PublicRoute>
-              }
-            />
+          <Route path="/profile" element={<Navigate to="/profile/me" replace />} />
+          <Route path="/profile/me" element={<ProfilePage />} />
+          <Route path="/profile/:username" element={<ProfilePage />} />
 
-            {/* Protected Routes */}
-            <Route
-              path="/chat"
-              element={
-                <ProtectedRoute>
-                  <ChatApp />
-                </ProtectedRoute>
-              }
-            />
+          <Route path="/post" element={<Feed />} />
+          <Route path="/post/:postId" element={<SinglePost />} />
+          <Route path="/posts/:postId" element={<SinglePost />} />
+          <Route path="/myposts" element={<MyPosts />} />
 
-            <Route
-              path="/profile/me"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
+          <Route path="/streams" element={<StreamsList />} />
+          <Route
+            path="/stream/:id"
+            element={
+              <Suspense fallback={<LoadingBlock label="Loading stream" />}>
+                <StreamViewer />
+              </Suspense>
+            }
+          />
 
-            <Route
-              path="/profile/:username"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
+          <Route path="/stores" element={<AllStores />} />
+          <Route path="/my-store" element={<MyStore />} />
+          <Route path="/products" element={<PublicProducts />} />
+          <Route path="/products/search" element={<ProductSearch />} />
+          <Route path="/products/:productId" element={<ProductDetail />} />
+          <Route path="/add-product" element={<AddProduct />} />
+          <Route path="/edit-product/:productId" element={<EditProduct />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+        </Route>
 
-            <Route
-              path="/notification"
-              element={
-                <ProtectedRoute>
-                  <NotificationPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/myposts"
-              element={
-                <ProtectedRoute>
-                  <MyPosts />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/post"
-              element={
-                <ProtectedRoute>
-                  <Feed />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/my-store"
-              element={
-                <ProtectedRoute>
-                  <MyStore />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/stores"
-              element={
-                <ProtectedRoute>
-                  <AllStores />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Product Routes */}
-            <Route
-              path="/products"
-              element={
-                <ProtectedRoute>
-                  <PublicProducts />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/products/:productId"
-              element={
-                <ProtectedRoute>
-                  <ProductDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/add-product"
-              element={
-                <ProtectedRoute>
-                  <AddProduct />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/edit-product/:productId"
-              element={
-                <ProtectedRoute>
-                  <EditProduct />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Cart Routes */}
-            <Route
-              path="/cart"
-              element={
-                <ProtectedRoute>
-                  <Cart />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Checkout Route */}
-            <Route
-              path="/checkout"
-              element={
-                <ProtectedRoute>
-                  <Checkout />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/search" element={<ProductSearch />} />
-
-            <Route
-              path="/wishlist"
-              element={
-                <ProtectedRoute>
-                  <Wishlist />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Stream Routes */}
-            <Route
-              path="/streams"
-              element={
-                <ProtectedRoute>
-                  <StreamsList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/stream/:id"
-              element={
-                <ProtectedRoute>
-                  <StreamViewer />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-
-          <Footer />
-        </Router>
-      </AuthProvider>
-    </NotificationProvider>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   );
 }
 

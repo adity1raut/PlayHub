@@ -28,7 +28,7 @@ export default function SiteHeader() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-2 pt-2 sm:px-4">
       <div className="mx-auto flex h-12 max-w-6xl items-center justify-between gap-3 border border-primary/25 bg-background/90 pr-2 pl-4 shadow-float backdrop-blur-sm sm:pl-7">
-        <Link to="/" aria-label="PlayHub home">
+        <Link to="/" aria-label="Spawnpoint home">
           <Logo size="sm" />
         </Link>
 
@@ -51,13 +51,17 @@ export default function SiteHeader() {
             label={isDark ? "Light theme" : "Dark theme"}
             onClick={toggleTheme}
           />
+          {/* Wrapper does the hiding: Button's own inline-flex would override a `hidden` class */}
           {!isAuthenticated && (
-            <Button as={Link} to="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">
-              Sign in
-            </Button>
+            <span className="hidden sm:inline-flex">
+              <Button as={Link} to="/login" variant="ghost" size="sm">
+                Sign in
+              </Button>
+            </span>
           )}
           <Button as={Link} to={isAuthenticated ? "/dashboard" : "/signup"} size="sm">
-            {isAuthenticated ? "Open workspace" : "Get started"}
+            <span className="sm:hidden">{isAuthenticated ? "Open" : "Join"}</span>
+            <span className="hidden sm:inline">{isAuthenticated ? "Open workspace" : "Get started"}</span>
           </Button>
           <div ref={menuRef} className="relative lg:hidden">
             <IconButton size="sm" icon={Menu} label="Menu" onClick={() => setMenuOpen((o) => !o)} />

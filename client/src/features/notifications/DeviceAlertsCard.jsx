@@ -17,19 +17,19 @@ const STATES = {
 function describe(status) {
   switch (status) {
     case "enabled":
-      return "This device rings and vibrates for new messages, follows, likes and live streams, even when PlayHub is closed.";
+      return "This device rings and vibrates for new messages, follows, likes and live streams, even when Spawnpoint is closed.";
     case "denied":
-      return "Notifications are blocked for PlayHub in this browser. Open the site settings (lock icon next to the address, or ⋮ → Settings → Site settings on Android), set Notifications to Allow, then reload this page.";
+      return "Notifications are blocked for Spawnpoint in this browser. Open the site settings (lock icon next to the address, or ⋮ → Settings → Site settings on Android), set Notifications to Allow, then reload this page.";
     case "ios-needs-install":
-      return "On iPhone and iPad (iOS 16.4+), push works only from the installed app: tap Share → Add to Home Screen, then open PlayHub from the icon and turn alerts on there.";
+      return "On iPhone and iPad (iOS 16.4+), push works only from the installed app: tap Share → Add to Home Screen, then open Spawnpoint from the icon and turn alerts on there.";
     case "unsupported":
       return typeof window !== "undefined" && !window.isSecureContext
-        ? "Push needs a secure (HTTPS) connection. In-app pop-ups with sound still work while PlayHub is open."
-        : "This browser can't receive push notifications. In-app pop-ups with sound still work while PlayHub is open.";
+        ? "Push needs a secure (HTTPS) connection. In-app pop-ups with sound still work while Spawnpoint is open."
+        : "This browser can't receive push notifications. In-app pop-ups with sound still work while Spawnpoint is open.";
     case "checking":
       return "Checking what this device supports…";
     default:
-      return "Get a ring and vibration on this device for new messages, follows and live streams, even when PlayHub is closed.";
+      return "Get a ring and vibration on this device for new messages, follows and live streams, even when Spawnpoint is closed.";
   }
 }
 

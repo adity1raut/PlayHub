@@ -164,7 +164,7 @@ export async function createOrder(req, res) {
         amount: totalAmount,
         currency: "INR",
         key: process.env.RAZORPAY_KEY_ID,
-        name: "PlayHub Store",
+        name: "Spawnpoint Store",
         description: `Payment for ${cart.items.length} items`,
         prefill: {
           name: user.profile?.name || user.username,

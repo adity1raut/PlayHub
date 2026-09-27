@@ -22,4 +22,5 @@ export {
 export { Input, Label, PasswordInput, Select, Textarea, inputClass } from "./Field";
 export { Avatar } from "./Avatar";
 export { Modal } from "./Modal";
+export { OtpInput } from "./OtpInput";
 export { Logo, LogoMark } from "./Logo";

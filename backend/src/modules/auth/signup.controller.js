@@ -18,12 +18,12 @@ export async function checkAvailability(identifier) {
   return { success: true, message: "Available" };
 }
 
-export async function sendRegistrationOTP(email) {
+export async function sendRegistrationOTP(email, name) {
   const to = normalizeEmail(email);
   if (!EMAIL_RE.test(to)) throw new Error("Enter a valid email address");
   if (await User.exists({ email: to })) throw new Error("An account with this email already exists");
 
-  const { expiresInSeconds } = await issueOtp(to, "register");
+  const { expiresInSeconds } = await issueOtp(to, "register", { name: String(name || "").trim().slice(0, 60) || undefined });
   return { success: true, message: "Verification code sent to your email", expiresInSeconds };
 }
 

@@ -3,7 +3,7 @@
 //
 // Needs TEST_MONGODB_URI pointing at a THROWAWAY database whose name contains "test"
 // (the database is wiped). Skipped when unset, so `npm test` never touches real data.
-//   TEST_MONGODB_URI=mongodb://127.0.0.1:27017/playhub_test npm test
+//   TEST_MONGODB_URI=mongodb://127.0.0.1:27017/spawnpoint_test npm test
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";

@@ -146,7 +146,7 @@ router.post("/check-availability", async (req, res) => {
 
 router.post("/send-otp", async (req, res) => {
   try {
-    const result = await sendRegistrationOTP(req.body.email);
+    const result = await sendRegistrationOTP(req.body.email, req.body.name);
     res.status(200).json(result);
   } catch (error) {
     res.status(error.status || 400).json({ success: false, message: error.message });
@@ -155,7 +155,7 @@ router.post("/send-otp", async (req, res) => {
 
 router.post("/resend-otp", async (req, res) => {
   try {
-    const result = await resendRegistrationOTP(req.body.email);
+    const result = await resendRegistrationOTP(req.body.email, req.body.name);
     res.status(200).json(result);
   } catch (error) {
     res.status(error.status || 400).json({ success: false, message: error.message });

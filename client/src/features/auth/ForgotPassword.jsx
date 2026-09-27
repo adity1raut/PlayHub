@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { ArrowLeft, AtSign, Check, KeyRound, Lock, RefreshCw, Send, Timer } from "lucide-react";
+import { ArrowLeft, AtSign, Check, KeyRound, Lock, Mail, RefreshCw, Send, Timer } from "lucide-react";
 import AuthLayout from "../../components/layout/AuthLayout";
-import { Alert, Button, Input, PasswordInput } from "../../components/ui";
+import { Alert, Button, Input, Label, OtpInput, PasswordInput } from "../../components/ui";
 import { API_URL } from "../../lib/config";
 import { toast } from "../../lib/toast";
 import { cn } from "../../lib/cn";
@@ -143,9 +143,10 @@ const ForgetPassword = () => {
   };
 
   // POST /api/auth/verify-reset-otp { identifier, otp }
-  const verifyOTP = async (e) => {
-    e?.preventDefault();
-    if (formData.otp.length !== OTP_LENGTH) {
+  const verifyOTP = async (e, codeArg) => {
+    e?.preventDefault?.();
+    const code = codeArg ?? formData.otp;
+    if (code.length !== OTP_LENGTH) {
       setError(`Please enter the ${OTP_LENGTH}-digit code`);
       return;
     }
@@ -154,7 +155,7 @@ const ForgetPassword = () => {
     try {
       const res = await axios.post(`${API_URL}/api/auth/verify-reset-otp`, {
         identifier,
-        otp: formData.otp,
+        otp: code,
       });
       if (res.data.success) {
         toast.success("Code verified");
@@ -278,23 +279,31 @@ const ForgetPassword = () => {
 
       {step === 2 && (
         <form onSubmit={verifyOTP} className="space-y-4" noValidate>
-          <div className="border border-dashed border-border-strong px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
-            <span className="text-primary">&gt;</span> A {OTP_LENGTH}-digit code was sent to the email for{" "}
-            <span className="font-bold break-all text-foreground">{identifier}</span>
+          <div className="flex gap-3 border border-dashed border-border-strong bg-muted/40 px-4 py-3">
+            <Mail className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              Check your inbox — we sent a {OTP_LENGTH}-digit code from{" "}
+              <span className="text-foreground">Spawnpoint</span> to the email for{" "}
+              <span className="font-bold break-all text-foreground">{identifier}</span>
+              <span className="block text-faint">Not there? Check spam or promotions.</span>
+            </p>
           </div>
-          <Input
-            label="Recovery code"
-            name="otp"
-            value={formData.otp}
-            onChange={handleChange}
-            disabled={buttonLoading.verifyOTP}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={OTP_LENGTH}
-            placeholder={"0".repeat(OTP_LENGTH)}
-            autoFocus
-            inputClassName="h-14 text-center text-2xl font-extrabold tracking-[0.6em] tabular-nums placeholder:text-faint/50"
-          />
+          <div>
+            <Label>Reset code</Label>
+            <OtpInput
+              value={formData.otp}
+              length={OTP_LENGTH}
+              onChange={(otp) => {
+                setFormData((p) => ({ ...p, otp }));
+                if (error) setError(null);
+              }}
+              onComplete={(code) => !buttonLoading.verifyOTP && verifyOTP(null, code)}
+              disabled={buttonLoading.verifyOTP}
+              invalid={Boolean(error)}
+              label="Reset code"
+              autoFocus
+            />
+          </div>
           <div className="flex items-center justify-between gap-3 text-[11px]">
             <span className="flex items-center gap-1.5 text-faint">
               <Timer className="size-3.5" aria-hidden="true" />

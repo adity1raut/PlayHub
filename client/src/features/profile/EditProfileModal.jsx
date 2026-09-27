@@ -129,7 +129,7 @@ const EditProfileModal = ({
       open={isEditing}
       onClose={close}
       title="Edit profile"
-      description="Update how other players see you on PlayHub."
+      description="Update how other players see you on Spawnpoint."
       size="lg"
       footer={
         <>

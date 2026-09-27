@@ -81,7 +81,7 @@ function StoreForm({
       description={
         store
           ? "Update your storefront details."
-          : "Open your storefront on PlayHub. You can add products right after."
+          : "Open your storefront on Spawnpoint. You can add products right after."
       }
       footer={
         <>

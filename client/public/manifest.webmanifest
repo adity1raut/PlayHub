@@ -1,6 +1,6 @@
 {
-  "name": "PlayHub",
-  "short_name": "PlayHub",
+  "name": "Spawnpoint",
+  "short_name": "Spawnpoint",
   "description": "Gaming community with real-time chat, live streams, posts and a creator marketplace.",
   "id": "/dashboard",
   "start_url": "/dashboard",

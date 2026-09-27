@@ -29,7 +29,7 @@ export function Logo({ subtitle, compact = false, size = "md", className }) {
               size === "sm" ? "text-[13px] sm:text-sm" : "text-[15px]",
             )}
           >
-            PlayHub
+            Spawnpoint
           </p>
           {subtitle && <p className="eyebrow mt-1.5 text-faint">{subtitle}</p>}
         </div>

@@ -49,7 +49,8 @@ export async function verifyMailer() {
  */
 async function sendMail(options) {
   try {
-    return await transporter.sendMail({ from: process.env.MAIL_USER, ...options });
+    const fromName = (process.env.MAIL_FROM_NAME || "Spawnpoint").replace(/["<>]/g, "");
+    return await transporter.sendMail({ from: `"${fromName}" <${process.env.MAIL_USER}>`, ...options });
   } catch (error) {
     console.error(`Mail send failed — ${explain(error)}`);
     const friendly = new Error(

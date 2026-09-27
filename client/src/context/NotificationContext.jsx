@@ -352,11 +352,11 @@ export function NotificationProvider({ children }) {
   useEffect(
     () =>
       onServiceWorkerMessage((msg) => {
-        if (msg.type === "playhub:navigate" && msg.url) {
+        if (msg.type === "spawnpoint:navigate" && msg.url) {
           navigateTo(msg.url);
           return;
         }
-        if (msg.type !== "playhub:push" || !msg.payload || !authRef.current) return;
+        if (msg.type !== "spawnpoint:push" || !msg.payload || !authRef.current) return;
         const n = fromPushPayload(msg.payload);
         // Normally the socket already delivered it; if not (reconnecting), show it now
         if (n._id && !notificationsRef.current.some((p) => p._id === n._id)) {

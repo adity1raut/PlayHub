@@ -92,7 +92,7 @@ export async function unsubscribePush(req, res) {
 export async function sendTestPush(req, res) {
   try {
     const result = await sendPushToUser(currentUserId(req), {
-      title: "PlayHub test alert",
+      title: "Spawnpoint test alert",
       body: "Push notifications are working on this device.",
       url: "/notification",
       tag: `test-${Date.now()}`,

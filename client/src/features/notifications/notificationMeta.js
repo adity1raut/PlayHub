@@ -25,7 +25,7 @@ export const NOTIFICATION_TYPES = {
   STORE_FOLLOW: { label: "Store", title: "New store follower", icon: Store, variant: "info" },
   NEW_ORDER: { label: "Order", title: "New order", icon: ShoppingBag, variant: "success" },
   REVIEW: { label: "Review", title: "New review", icon: Star, variant: "warning" },
-  GENERAL: { label: "General", title: "PlayHub", icon: Bell, variant: "secondary" },
+  GENERAL: { label: "General", title: "Spawnpoint", icon: Bell, variant: "secondary" },
 };
 
 /** Unknown / missing types (e.g. a newer server) fall back to GENERAL. */

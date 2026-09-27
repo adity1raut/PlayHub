@@ -40,7 +40,7 @@ const LoginForm = () => {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in to continue to PlayHub."
+      subtitle="Sign in to continue to Spawnpoint."
       footer={
         <>
           New here?{" "}

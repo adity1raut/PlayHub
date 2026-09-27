@@ -14,7 +14,7 @@ export default function AuthLayout({ title, subtitle, children, footer, status =
       <SiteHeader />
       <main className="flex flex-1 items-center justify-center px-4 pt-24 pb-12 sm:px-6">
         <div className="grid w-full max-w-6xl grid-cols-1 items-start gap-12 lg:grid-cols-[1fr_28rem]">
-          <section className="hidden lg:block" aria-label="Why PlayHub">
+          <section className="hidden lg:block" aria-label="Why Spawnpoint">
             <div className="border-l border-dashed border-border-strong pl-6">
               <p className="eyebrow text-faint">Player workspace</p>
               <h2 className="mt-5 text-5xl leading-[1.1] font-extrabold tracking-[0.06em] uppercase">

@@ -185,7 +185,7 @@ function StatusBar({ className }) {
           Session: @{user?.username}
         </span>
       </div>
-      <span>PlayHub · v2.0</span>
+      <span>Spawnpoint · v2.0</span>
     </footer>
   );
 }
@@ -195,7 +195,7 @@ function MobileTopBar({ onMenu }) {
   const navigate = useNavigate();
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-sidebar/95 px-3 backdrop-blur-md md:hidden">
-      <NavLink to="/dashboard" aria-label="PlayHub home">
+      <NavLink to="/dashboard" aria-label="Spawnpoint home">
         <Logo size="sm" />
       </NavLink>
       <div className="flex items-center gap-1">

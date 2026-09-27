@@ -4,7 +4,7 @@ import { useNotifications } from "../../context/NotificationContext";
 import { toast } from "../../lib/toast";
 import { Alert, Button } from "../../components/ui";
 
-const DISMISS_KEY = "playhub:alerts-banner-dismissed";
+const DISMISS_KEY = "spawnpoint:alerts-banner-dismissed";
 
 function readDismissed() {
   try {
@@ -50,8 +50,8 @@ function DeviceAlertsBanner({ className }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p>
           {ios
-            ? "Tap Share → Add to Home Screen, then open PlayHub from the icon to get message and live-stream alerts."
-            : "Ring and vibrate this device for new messages, follows and live streams, even when PlayHub is closed."}
+            ? "Tap Share → Add to Home Screen, then open Spawnpoint from the icon to get message and live-stream alerts."
+            : "Ring and vibrate this device for new messages, follows and live streams, even when Spawnpoint is closed."}
         </p>
         <div className="flex shrink-0 items-center gap-2">
           {!ios && (

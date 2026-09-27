@@ -224,7 +224,7 @@ const Feed = () => {
       <PageHeader
         eyebrow="Community / Feed"
         title="Feed"
-        description="Share your thoughts, clips and screenshots with the PlayHub community."
+        description="Share your thoughts, clips and screenshots with the Spawnpoint community."
         actions={
           <>
             <Button variant="outline" icon={FileText} onClick={handleMyPostsClick}>

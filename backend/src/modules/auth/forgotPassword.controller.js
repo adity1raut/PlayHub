@@ -14,7 +14,7 @@ async function findUser(identifier) {
 
 export async function sendOTP(identifier) {
   const user = await findUser(identifier);
-  const { expiresInSeconds } = await issueOtp(user.email, "reset");
+  const { expiresInSeconds } = await issueOtp(user.email, "reset", { name: user.profile?.name || user.username });
   return { success: true, message: "Reset code sent to your email", expiresInSeconds };
 }
 

@@ -4,7 +4,7 @@ import axios from "axios";
 import { ArrowLeft, ArrowRight, AtSign, Check, KeyRound, Mail, RefreshCw, Send, UserRound, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import AuthLayout from "../../components/layout/AuthLayout";
-import { Alert, Button, Input, PasswordInput, Spinner } from "../../components/ui";
+import { Alert, Button, Input, Label, OtpInput, PasswordInput, Spinner } from "../../components/ui";
 import { API_URL as backendUrl } from "../../lib/config";
 import { toast } from "../../lib/toast";
 import { cn } from "../../lib/cn";
@@ -144,7 +144,7 @@ const RegistrationForm = () => {
     setLoading(true);
     setError(null);
     try {
-      await axios.post(`${backendUrl}/api/auth/send-otp`, { email: clean.email });
+      await axios.post(`${backendUrl}/api/auth/send-otp`, { email: clean.email, name: clean.name });
       setOtpSent(true);
       setOtpTimer(RESEND_COOLDOWN);
       toast.success("Verification code sent to your email");
@@ -159,7 +159,7 @@ const RegistrationForm = () => {
     setLoading(true);
     setError(null);
     try {
-      await axios.post(`${backendUrl}/api/auth/resend-otp`, { email: clean.email });
+      await axios.post(`${backendUrl}/api/auth/resend-otp`, { email: clean.email, name: clean.name });
       setOtpTimer(RESEND_COOLDOWN);
       setFormData((p) => ({ ...p, otp: "" }));
       toast.success("New code sent — use the code from this newest email");
@@ -170,13 +170,13 @@ const RegistrationForm = () => {
     }
   };
 
-  const verifyOTP = async () => {
+  const verifyOTP = async (code = formData.otp) => {
     setStepLoading(true);
     setError(null);
     try {
       await axios.post(`${backendUrl}/api/auth/verify-otp`, {
         email: clean.email,
-        otp: formData.otp,
+        otp: code,
       });
       toast.success("Email verified");
       setStep(3);
@@ -370,9 +370,14 @@ const RegistrationForm = () => {
 
       {step === 2 && (
         <form onSubmit={nextStep} className="space-y-4" noValidate>
-          <div className="border border-dashed border-border-strong px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
-            <span className="text-primary">&gt;</span> We&apos;ll send a {OTP_LENGTH}-digit code to{" "}
-            <span className="font-bold break-all text-foreground">{clean.email}</span>
+          <div className="flex gap-3 border border-dashed border-border-strong bg-muted/40 px-4 py-3">
+            <Mail className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              {otpSent ? "Check your inbox — we sent a " : "We'll email a "}
+              {OTP_LENGTH}-digit code from <span className="text-foreground">Spawnpoint</span> to{" "}
+              <span className="font-bold break-all text-foreground">{clean.email}</span>
+              {otpSent && <span className="block text-faint">Not there? Check spam or promotions.</span>}
+            </p>
           </div>
 
           {!otpSent ? (
@@ -388,19 +393,21 @@ const RegistrationForm = () => {
             </>
           ) : (
             <>
-              <Input
-                label="Verification code"
-                name="otp"
-                value={formData.otp}
-                onChange={handleChange}
-                disabled={stepLoading}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={OTP_LENGTH}
-                placeholder={"0".repeat(OTP_LENGTH)}
-                autoFocus
-                inputClassName="h-14 text-center text-2xl font-extrabold tracking-[0.6em] tabular-nums placeholder:text-faint/50"
-              />
+              <div>
+                <Label>Verification code</Label>
+                <OtpInput
+                  value={formData.otp}
+                  length={OTP_LENGTH}
+                  onChange={(otp) => {
+                    setFormData((p) => ({ ...p, otp }));
+                    if (error) setError(null);
+                  }}
+                  onComplete={(code) => !stepLoading && verifyOTP(code)}
+                  disabled={stepLoading}
+                  invalid={Boolean(error)}
+                  autoFocus
+                />
+              </div>
               <div className="flex items-center justify-between gap-3 text-[11px]">
                 <span className="text-faint">
                   Valid for 10 minutes · use the newest email

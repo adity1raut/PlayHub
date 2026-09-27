@@ -8,7 +8,7 @@ import { API_URL } from "./config";
 
 const SW_URL = `/sw.js?api=${encodeURIComponent(API_URL)}`;
 const PUSH_API = `${API_URL}/api/notifications/push`;
-const WANTED_KEY = "playhub:push-wanted"; // the user turned alerts on for this device
+const WANTED_KEY = "spawnpoint:push-wanted"; // the user turned alerts on for this device
 const READY_TIMEOUT_MS = 10000;
 
 let registrationPromise = null;
@@ -69,7 +69,7 @@ function attachMessageListener() {
   messageListenerAttached = true;
   navigator.serviceWorker.addEventListener("message", (event) => {
     const data = event.data;
-    if (!data || typeof data !== "object" || typeof data.type !== "string" || !data.type.startsWith("playhub:")) return;
+    if (!data || typeof data !== "object" || typeof data.type !== "string" || !data.type.startsWith("spawnpoint:")) return;
     messageHandlers.forEach((fn) => {
       try {
         fn(data);
@@ -82,8 +82,8 @@ function attachMessageListener() {
 
 /**
  * Subscribe to messages from the service worker:
- *   { type: "playhub:push", payload }  a push arrived while the app is on screen
- *   { type: "playhub:navigate", url }  the user clicked a system notification
+ *   { type: "spawnpoint:push", payload }  a push arrived while the app is on screen
+ *   { type: "spawnpoint:navigate", url }  the user clicked a system notification
  * Returns an unsubscribe function.
  */
 export function onServiceWorkerMessage(handler) {
@@ -210,7 +210,7 @@ function requestPermission() {
 /** Ask permission (must run from a click), subscribe, and register the device. */
 export async function enablePush() {
   if (isIOS() && !isStandalone()) {
-    throw new Error("On iPhone/iPad, tap Share → Add to Home Screen, then open PlayHub from the icon.");
+    throw new Error("On iPhone/iPad, tap Share → Add to Home Screen, then open Spawnpoint from the icon.");
   }
   if (!isPushSupported()) {
     throw new Error(

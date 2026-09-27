@@ -18,7 +18,7 @@ env.config();
 const app = express();
 
 // CLIENT_URL may list several origins separated by commas,
-// e.g. "http://localhost:5173,https://playhub.example.com"
+// e.g. "http://localhost:5173,https://spawnpoint.example.com"
 const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
   .split(",")
   .map((o) => o.trim().replace(/\/+$/, ""))

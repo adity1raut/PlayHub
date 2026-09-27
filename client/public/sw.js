@@ -1,4 +1,4 @@
-/* PlayHub service worker: Web Push only (no fetch handler, no caching).
+/* Spawnpoint service worker: Web Push only (no fetch handler, no caching).
  *
  * Registered by src/lib/push.js as /sw.js?api=<encoded API_URL>. The API origin may differ
  * from the page origin, so the API base is read from this script's own query string.
@@ -50,10 +50,10 @@ function readPayload(event) {
 
 function normalize(data) {
   return {
-    title: data.title || "PlayHub",
+    title: data.title || "Spawnpoint",
     body: data.body || "",
     url: data.url || DEFAULT_URL,
-    tag: data.tag || "playhub",
+    tag: data.tag || "spawnpoint",
     type: data.type || "GENERAL",
     id: data.id || null,
     icon: data.icon || DEFAULT_ICON,
@@ -76,7 +76,7 @@ async function handlePush(payload) {
   // App is on screen: it plays its own in-app alert with sound instead.
   // Test pushes always go to the system tray so the user can see the real thing.
   if (visible.length && !payload.test && !IS_APPLE_WEBKIT) {
-    visible.forEach((c) => c.postMessage({ type: "playhub:push", payload }));
+    visible.forEach((c) => c.postMessage({ type: "spawnpoint:push", payload }));
     return;
   }
 
@@ -121,7 +121,7 @@ self.addEventListener("notificationclick", (event) => {
           /* focus may be refused; still navigate */
         }
         // In-app (SPA) navigation keeps the socket and state alive; see src/lib/push.js
-        client.postMessage({ type: "playhub:navigate", url: target.pathname + target.search + target.hash });
+        client.postMessage({ type: "spawnpoint:navigate", url: target.pathname + target.search + target.hash });
         return;
       }
       await self.clients.openWindow(target.href);

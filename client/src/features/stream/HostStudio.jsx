@@ -50,7 +50,7 @@ export default function HostStudio({ stream, onViewers, onEnd, ending = false })
   if (!mediaDevicesSupported()) {
     return (
       <Alert variant="warning" title="Camera access unavailable">
-        Broadcasting needs a secure page (https:// or http://localhost) and a browser with camera support. Open PlayHub
+        Broadcasting needs a secure page (https:// or http://localhost) and a browser with camera support. Open Spawnpoint
         over HTTPS to go live from this device.
       </Alert>
     );
@@ -81,7 +81,7 @@ export default function HostStudio({ stream, onViewers, onEnd, ending = false })
             <div>
               <p className="text-sm font-bold tracking-[0.14em] text-foreground uppercase">Ready to broadcast</p>
               <p className="mt-2 max-w-sm text-[11px] leading-relaxed text-muted-foreground">
-                Your camera and mic are sent once to the PlayHub SFU, which relays them to every viewer. Followers
+                Your camera and mic are sent once to the Spawnpoint SFU, which relays them to every viewer. Followers
                 get a &quot;live now&quot; alert as soon as you start.
               </p>
             </div>

@@ -96,7 +96,7 @@ export function ProductSearch() {
       <PageHeader
         eyebrow="Marketplace / Search"
         title="Product search"
-        description="Find gear across every PlayHub store — filter by price, store and sort order."
+        description="Find gear across every Spawnpoint store — filter by price, store and sort order."
         actions={
           <>
             <Button as={Link} to="/wishlist" variant="outline" icon={Heart}>

@@ -4,7 +4,7 @@
  * the AudioContext on the first tap/click/keypress.
  */
 
-const STORAGE_KEY = "playhub:alert-sound";
+const STORAGE_KEY = "spawnpoint:alert-sound";
 const MIN_GAP_MS = 1200; // collapse bursts of notifications into one beep
 const MAX_START_DELAY_MS = 600; // don't play a stale beep if resuming took too long
 

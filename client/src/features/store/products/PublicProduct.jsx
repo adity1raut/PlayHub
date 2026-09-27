@@ -214,7 +214,7 @@ export default function PublicProducts() {
       <PageHeader
         eyebrow="Marketplace / Products"
         title="Products"
-        description="Browse gear, merch and digital goods from every PlayHub store."
+        description="Browse gear, merch and digital goods from every Spawnpoint store."
         actions={
           <>
             <div className="flex border border-border" role="group" aria-label="View mode">

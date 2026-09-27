@@ -497,7 +497,7 @@ export function ProductProvider({ children }) {
       return sum + quantity;
     }, 0);
 
-    // Show the item count in the tab title, e.g. "(3) PlayHub"
+    // Show the item count in the tab title, e.g. "(3) Spawnpoint"
     if (typeof document !== "undefined") {
       const title = document.title.replace(/^\(\d+\)\s*/, "");
       document.title = totalItems > 0 ? `(${totalItems}) ${title}` : title;

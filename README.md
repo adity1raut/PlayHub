@@ -1,8 +1,8 @@
-# PlayHub
+# Spawnpoint
 
-[![CI](https://github.com/adity1raut/PlayHub/actions/workflows/ci.yml/badge.svg)](https://github.com/adity1raut/PlayHub/actions/workflows/ci.yml)
+[![CI](https://github.com/adity1raut/Spawnpoint/actions/workflows/ci.yml/badge.svg)](https://github.com/adity1raut/Spawnpoint/actions/workflows/ci.yml)
 
-PlayHub is a social platform for gamers. Chat with friends, go live on camera, share posts and clips, and run your own store, all in one app that updates in real time.
+Spawnpoint is a social platform for gamers. Chat with friends, go live on camera, share posts and clips, and run your own store, all in one app that updates in real time.
 
 ## Features
 
@@ -33,7 +33,7 @@ PlayHub is a social platform for gamers. Chat with friends, go live on camera, s
 ### Notifications
 - Alerts for new followers, likes, comments, messages, live streams, new orders, order confirmations and product reviews
 - In-app pop-ups with sound, plus a notifications page with read/unread filters
-- **Phone and desktop push notifications**, even when PlayHub is closed (installable app; on iPhone, use "Add to Home Screen")
+- **Phone and desktop push notifications**, even when Spawnpoint is closed (installable app; on iPhone, use "Add to Home Screen")
 - No alerts for your own actions, and no repeat spam from follow/unfollow or like/unlike
 
 ### Marketplace
@@ -133,7 +133,7 @@ Open http://localhost:5173, create an account, and you're in.
 - `backend/tests/realtime.test.js` is an end-to-end test covering follows, posts, stores, orders, reviews and live streams: notifications and live socket updates. It runs only when `TEST_MONGODB_URI` points at a **throwaway** database whose name contains `test`:
 
   ```bash
-  TEST_MONGODB_URI=mongodb://127.0.0.1:27017/playhub_test npm test
+  TEST_MONGODB_URI=mongodb://127.0.0.1:27017/spawnpoint_test npm test
   ```
 
 **GitHub Actions** (`.github/workflows/ci.yml`) runs on every push and on pull requests to `main`:

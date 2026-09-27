@@ -170,7 +170,7 @@ function Hero({ signedIn }) {
           <div className="mt-12 flex max-w-xl items-center gap-3 text-[10px] tracking-[0.14em] text-faint uppercase">
             <span>∞</span>
             <span className="h-px flex-1 bg-border-strong" />
-            <span>PlayHub sentinel</span>
+            <span>Spawnpoint sentinel</span>
           </div>
         </div>
         <SessionPreview />
@@ -341,7 +341,7 @@ function SiteFooter() {
             <StatusDot pulse /> Online
           </span>
           <span className="hidden items-center gap-1.5 sm:flex">
-            <Zap className="size-3 text-primary" /> © {new Date().getFullYear()} PlayHub
+            <Zap className="size-3 text-primary" /> © {new Date().getFullYear()} Spawnpoint
           </span>
         </div>
       </div>

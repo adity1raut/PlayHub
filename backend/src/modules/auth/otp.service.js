@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import Otp from "./otp.model.js";
 import mailer from "../../config/nodemailer.js";
+import { renderOtpEmail } from "./otpEmail.js";
 
 export const OTP_LENGTH = 6;
 const CODE_TTL_MINUTES = 10; // how long an emailed code can be used
@@ -21,33 +22,11 @@ function fail(message, status = 400) {
   return error;
 }
 
-const SUBJECTS = {
-  register: "Your PlayHub verification code",
-  reset: "Your PlayHub password reset code",
-};
-
-const INTROS = {
-  register: "Use this code to verify your email and finish creating your PlayHub account.",
-  reset: "Use this code to reset your PlayHub password.",
-};
-
-function emailHtml(code, purpose) {
-  return `
-  <div style="background:#0a0f17;padding:32px 16px;font-family:'JetBrains Mono',Menlo,Consolas,monospace;color:#e9edf5">
-    <div style="max-width:420px;margin:0 auto;border:1px solid #3a4658;background:#0e141e;padding:28px">
-      <p style="margin:0;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#5eead4;font-weight:700">PlayHub</p>
-      <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:#8e98aa">${INTROS[purpose]}</p>
-      <p style="margin:22px 0;padding:16px 0;border:1px solid #5eead4;background:rgba(94,234,212,.08);text-align:center;font-size:32px;font-weight:800;letter-spacing:.35em;color:#5eead4">${code}</p>
-      <p style="margin:0;font-size:12px;color:#8e98aa">This code expires in ${CODE_TTL_MINUTES} minutes. If you didn't ask for it, you can ignore this email.</p>
-    </div>
-  </div>`;
-}
-
 /**
  * Create a fresh code for (email, purpose), replacing any previous one, and email it.
  * Only the newest code works — tell users to use the latest email.
  */
-export async function issueOtp(email, purpose) {
+export async function issueOtp(email, purpose, { name } = {}) {
   const to = normalizeEmail(email);
   const code = crypto.randomInt(0, 10 ** OTP_LENGTH).toString().padStart(OTP_LENGTH, "0");
 
@@ -61,12 +40,8 @@ export async function issueOtp(email, purpose) {
     console.log(`[dev] ${purpose} code for ${to}: ${code}`);
   }
 
-  await mailer.sendMail({
-    to,
-    subject: SUBJECTS[purpose],
-    text: `Your PlayHub code is ${code}. It expires in ${CODE_TTL_MINUTES} minutes.`,
-    html: emailHtml(code, purpose),
-  });
+  const { subject, html, text, attachments } = renderOtpEmail({ code, purpose, name, ttlMinutes: CODE_TTL_MINUTES });
+  await mailer.sendMail({ to, subject, html, text, attachments });
 
   return { expiresInSeconds: CODE_TTL_MINUTES * 60 };
 }

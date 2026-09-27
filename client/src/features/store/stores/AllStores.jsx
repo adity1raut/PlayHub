@@ -218,7 +218,7 @@ function AllStores() {
       <PageHeader
         eyebrow="Marketplace / Stores"
         title="Stores"
-        description="Discover stores run by the PlayHub community. Follow the ones you like to keep up with new drops."
+        description="Discover stores run by the Spawnpoint community. Follow the ones you like to keep up with new drops."
         actions={
           <>
             <IconButton icon={Heart} label="Wishlist" variant="outline" onClick={handleWishlistClick} />

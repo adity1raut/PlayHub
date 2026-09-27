@@ -300,7 +300,7 @@ function MyStore() {
           <EmptyState
             icon={Warehouse}
             title="No store yet"
-            description="Create your store to start selling to the PlayHub community."
+            description="Create your store to start selling to the Spawnpoint community."
             action={
               <Button variant="solid" icon={Plus} onClick={() => setShowForm(true)}>
                 Create store

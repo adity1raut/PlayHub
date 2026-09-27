@@ -1,4 +1,4 @@
-# PlayHub architecture
+# Spawnpoint architecture
 
 Developer notes on how the pieces connect. For setup and features, see the [README](../README.md).
 

@@ -104,11 +104,11 @@ const PUSH_TITLES = {
   STREAM_END: "Stream ended",
   STREAM_VIEWER: "New viewer",
   ORDER_UPDATE: "Order update",
-  GENERAL: "PlayHub",
+  GENERAL: "Spawnpoint",
 };
 
 export function pushTitleFor(type) {
-  return PUSH_TITLES[type] || "PlayHub";
+  return PUSH_TITLES[type] || "Spawnpoint";
 }
 
 const endpointHost = (endpoint) => {

@@ -59,7 +59,7 @@ jobs:
 
     env:
       # Throwaway database for the realtime integration tests (wiped on every run)
-      TEST_MONGODB_URI: mongodb://127.0.0.1:27017/playhub_test
+      TEST_MONGODB_URI: mongodb://127.0.0.1:27017/spawnpoint_test
       JWT_SECRET: ci_jwt_secret
       VAPID_SUBJECT: mailto:ci@example.com
 

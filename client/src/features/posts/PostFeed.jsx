@@ -122,7 +122,7 @@ const Feed = () => {
 
   // Realtime: your own posts (e.g. from another tab) go straight in; everyone else's wait
   // behind the "N new posts" pill so the feed doesn't jump while you're reading.
-  useSocketEvent("post:created", ({ post } = {}) => {
+  const addLivePost = (post) => {
     if (!post?._id) return;
     if (user && idOf(post.author) === String(user._id)) {
       setPosts((prev) => prependNew(prev, [post]));
@@ -130,7 +130,27 @@ const Feed = () => {
       return;
     }
     setPendingPosts((prev) => (hasPost(prev, post._id) || hasPost(posts, post._id) ? prev : [post, ...prev]));
-  });
+  };
+
+  // After a reconnect: posts made while we were offline arrive the same way (oldest first, so the
+  // newest ends up on top) — without resetting how far you've scrolled
+  const catchUp = async () => {
+    if (!posts.length) {
+      fetchPosts(1, false);
+      return;
+    }
+    try {
+      const res = await axios.get(`${API_URL}/api/posts/feed`, {
+        params: { page: 1, limit: PAGE_SIZE },
+        withCredentials: true,
+      });
+      if (res.data.success) [...(res.data.posts || [])].reverse().forEach(addLivePost);
+    } catch {
+      /* still offline — the next reconnect or Refresh tries again */
+    }
+  };
+
+  useSocketEvent("post:created", ({ post } = {}) => addLivePost(post), { onReconnect: catchUp });
 
   useSocketEvent("post:deleted", ({ postId } = {}) => {
     if (!postId) return;

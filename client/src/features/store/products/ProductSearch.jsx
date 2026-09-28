@@ -5,8 +5,10 @@ import { ChevronLeft, ChevronRight, Heart, RotateCcw, Search, ShoppingCart, Slid
 import { useProduct } from "../../../context/ProductContext";
 import { API_URL } from "../../../lib/config";
 import { Button, Card, CardBar, Eyebrow, Input, LoadingBlock, Page, PageHeader, Select } from "../../../components/ui";
+import { useSocketEvent } from "../../../lib/useSocketEvent";
 import ProductGrid from "./ProductGrid";
 import TrendingProducts from "./TrendingProducts";
+import { idOf, mergeStore, useLiveProductList } from "../liveCatalog";
 
 const DEFAULT_PARAMS = {
   q: "",
@@ -18,7 +20,7 @@ const DEFAULT_PARAMS = {
 };
 
 export function ProductSearch() {
-  const { searchProducts, products, searchLoading } = useProduct();
+  const { searchProducts, products, setProducts, searchLoading } = useProduct();
   const [urlParams, setUrlParams] = useSearchParams();
 
   const [searchParams, setSearchParams] = useState(() => ({
@@ -63,6 +65,25 @@ export function ProductSearch() {
       active = false;
     };
   }, []);
+
+  // Realtime: results follow price / stock / rating / store changes and removals; a new product
+  // re-runs the current search (it may belong on this page). The store filter follows stores.
+  useLiveProductList(products, setProducts, {
+    onRemoved: (n) => setMeta((m) => ({ ...m, total: Math.max(0, m.total - n) })),
+  });
+
+  useSocketEvent("product:created", () => hasSearched && runSearch(meta.page), {
+    onReconnect: () => runSearch(meta.page),
+  });
+
+  useSocketEvent("store:updated", ({ storeId, store } = {}) => {
+    if (store) setStores((prev) => prev.map((s) => (idOf(s) === String(storeId) ? mergeStore(s, store) : s)));
+  });
+
+  useSocketEvent("store:deleted", ({ storeId } = {}) => {
+    setStores((prev) => prev.filter((s) => idOf(s) !== String(storeId)));
+    if (searchParams.store === String(storeId)) setSearchParams((prev) => ({ ...prev, store: "" }));
+  });
 
   const handleSearch = async (e) => {
     e.preventDefault();

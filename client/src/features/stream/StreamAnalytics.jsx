@@ -4,6 +4,8 @@ import {
   BarChart3,
   Clock,
   Download,
+  Eye,
+  Heart,
   MessageSquare,
   RefreshCw,
   TrendingUp,
@@ -24,6 +26,7 @@ import {
 } from "../../components/ui";
 import { API_URL as backendUrl } from "../../lib/config";
 import { toast } from "../../lib/toast";
+import { useSocketEvent } from "../../lib/useSocketEvent";
 
 const BUCKETS = 12;
 
@@ -72,6 +75,27 @@ const StreamAnalytics = ({ streamId, isOpen, onClose }) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, streamId]);
+
+  // While open, counters update live: the server sends `stream:stats` to the host's tabs
+  useSocketEvent("stream:stats", (stats = {}) => {
+    if (!isOpen || String(stats.streamId) !== String(streamId)) return;
+    setAnalytics((prev) =>
+      prev
+        ? {
+            ...prev,
+            analytics: {
+              ...prev.analytics,
+              isLive: stats.isLive ?? prev.analytics.isLive,
+              liveViewers: stats.viewers ?? prev.analytics.liveViewers,
+              totalViewers: stats.uniqueViewers ?? prev.analytics.totalViewers,
+              peakViewers: stats.peakViewers ?? prev.analytics.peakViewers,
+              totalMessages: stats.messages ?? prev.analytics.totalMessages,
+              totalReactions: stats.reactions ?? prev.analytics.totalReactions,
+            },
+          }
+        : prev,
+    );
+  });
 
   const formatDuration = (minutes = 0) => {
     const hours = Math.floor(minutes / 60);
@@ -133,7 +157,9 @@ const StreamAnalytics = ({ streamId, isOpen, onClose }) => {
       ["stream", analytics.stream],
       ["status", a.isLive ? "live" : "ended"],
       ["viewers", a.totalViewers],
+      ["peak_viewers", a.peakViewers ?? 0],
       ["messages", a.totalMessages],
+      ["reactions", a.totalReactions ?? 0],
       ["duration_minutes", a.duration],
       ["engagement_rate_pct", getEngagementRate()],
       ["started_at", a.startedAt || ""],
@@ -197,11 +223,19 @@ const StreamAnalytics = ({ streamId, isOpen, onClose }) => {
       ) : a ? (
         <div className="space-y-6">
           {/* Key metrics */}
-          <div className="grid grid-cols-2 border-t border-l border-border lg:grid-cols-4">
-            <StatTile index="01" icon={Users} label="Viewers" value={a.totalViewers} tone="text-info" />
-            <StatTile index="02" icon={MessageSquare} label="Messages" value={a.totalMessages} tone="text-success" />
-            <StatTile index="03" icon={Clock} label="Duration" value={formatDuration(a.duration)} />
-            <StatTile index="04" icon={TrendingUp} label="Engagement" value={`${engagement}%`} tone="text-warning" />
+          {a.isLive && (
+            <p className="flex items-center gap-2 text-[11px] text-faint" role="status">
+              <StatusDot tone="danger" pulse /> Live — {a.liveViewers ?? 0} watching now. These numbers update by
+              themselves.
+            </p>
+          )}
+          <div className="grid grid-cols-2 border-t border-l border-border lg:grid-cols-3">
+            <StatTile index="01" icon={Users} label="Unique viewers" value={a.totalViewers} tone="text-info" />
+            <StatTile index="02" icon={Eye} label="Peak viewers" value={a.peakViewers ?? 0} tone="text-info" />
+            <StatTile index="03" icon={MessageSquare} label="Messages" value={a.totalMessages} tone="text-success" />
+            <StatTile index="04" icon={Heart} label="Reactions" value={a.totalReactions ?? 0} tone="text-destructive" />
+            <StatTile index="05" icon={Clock} label="Duration" value={formatDuration(a.duration)} />
+            <StatTile index="06" icon={TrendingUp} label="Engagement" value={`${engagement}%`} tone="text-warning" />
           </div>
 
           {/* Chat activity */}

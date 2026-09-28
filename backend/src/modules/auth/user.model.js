@@ -62,6 +62,22 @@ const UserSchema = new mongoose.Schema({
     },
   ],
 
+  // Read through settingsOf() (settings.js): documents saved before this existed have no settings
+  settings: {
+    privacy: {
+      // "friends": only mutual followers can chat with you; "everyone": anyone who also allows everyone
+      messages: { type: String, enum: ["friends", "everyone"], default: "friends" },
+    },
+    notifications: {
+      messages: { type: Boolean, default: true },
+      follows: { type: Boolean, default: true },
+      likes: { type: Boolean, default: true },
+      comments: { type: Boolean, default: true },
+      live: { type: Boolean, default: true },
+      store: { type: Boolean, default: true },
+    },
+  },
+
   createdAt: { type: Date, default: Date.now },
 });
 

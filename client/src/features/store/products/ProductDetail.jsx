@@ -26,6 +26,8 @@ import { useStore } from "../../../context/StoreContext";
 import { mediaUrl } from "../../../lib/config";
 import { toast } from "../../../lib/toast";
 import { cn } from "../../../lib/cn";
+import { useSocketEvent } from "../../../lib/useSocketEvent";
+import { inDeletedStore, withChanges, withRating, withStore } from "../liveCatalog";
 import {
   Alert,
   Avatar,
@@ -101,6 +103,7 @@ export default function ProductDetail() {
   const [review, setReview] = useState("");
   const [submittingRating, setSubmittingRating] = useState(false);
   const [error, setError] = useState("");
+  const [removed, setRemoved] = useState(false); // deleted (or its store closed) while open
   const [, setSuccess] = useState("");
   const [addingToCart, setAddingToCart] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -138,6 +141,8 @@ export default function ProductDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
+  // Fill the form when editing starts — not on every live update (a purchase changing the
+  // stock, say), which would wipe what the owner is typing.
   useEffect(() => {
     if (product && isEditing) {
       setEditData({
@@ -147,21 +152,59 @@ export default function ProductDetail() {
         stock: product.stock?.toString() || "",
       });
     }
-  }, [product, isEditing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?._id, isEditing]);
+
+  // Realtime: price / stock / details, reviews and the store's name follow along; if the
+  // product (or its whole store) is deleted while open, say so.
+  const isThisProduct = (id) => String(id) === String(productId);
+  const markRemoved = () => {
+    setRemoved(true);
+    setProduct(null);
+    setIsEditing(false);
+    setError("This product was removed by its store.");
+  };
+
+  useSocketEvent(
+    "product:updated",
+    ({ productId: id, product: changes } = {}) => {
+      if (changes && isThisProduct(id)) setProduct((prev) => (prev ? withChanges(prev, changes) : prev));
+    },
+    { onReconnect: () => productId && !removed && fetchProduct({ silent: true }) },
+  );
+
+  useSocketEvent("product:rating", (e = {}) => {
+    if (e.review && isThisProduct(e.productId)) setProduct((prev) => (prev ? withRating(prev, e) : prev));
+  });
+
+  useSocketEvent("store:updated", ({ storeId: id, store } = {}) => {
+    if (store && storeId && String(id) === storeId) setProduct((prev) => (prev ? withStore(prev, store) : prev));
+  });
+
+  useSocketEvent("product:deleted", ({ productId: id } = {}) => isThisProduct(id) && markRemoved());
+
+  useSocketEvent("store:deleted", (e = {}) => product && inDeletedStore(product, e) && markRemoved());
+
+  // Saved / unsaved in another tab
+  useSocketEvent("wishlist:updated", (e = {}) => {
+    if (isThisProduct(e.productId)) setInWishlist(Boolean(e.inWishlist));
+  });
 
   // Object URLs for the not-yet-uploaded images (revoked when the list changes).
   const newImagePreviews = useMemo(() => newImages.map((file) => URL.createObjectURL(file)), [newImages]);
   useEffect(() => () => newImagePreviews.forEach((url) => URL.revokeObjectURL(url)), [newImagePreviews]);
 
-  const fetchProduct = async () => {
+  // `silent`: refresh in the background (e.g. after a reconnect) — keeps the page up if the request fails
+  const fetchProduct = async ({ silent = false } = {}) => {
     setLoading(true);
     setError("");
+    setRemoved(false);
     try {
       const productData = await getProductById(productId);
       if (productData) {
         setProduct(productData);
         setError("");
-      } else {
+      } else if (!silent) {
         setProduct(null);
         setError("This product doesn't exist or was removed.");
       }
@@ -372,7 +415,7 @@ export default function ProductDetail() {
         <Card corners>
           <EmptyState
             icon={PackageX}
-            title="Product not found"
+            title={removed ? "Product removed" : "Product not found"}
             description={error || "This product doesn't exist or was removed."}
             action={
               <div className="flex flex-wrap justify-center gap-2">

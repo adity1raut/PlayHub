@@ -17,3 +17,9 @@ export function broadcast(event, payload) {
 export function toUser(userId, event, payload) {
   if (userId) io?.to(`user_${userId}`).emit(event, payload);
 }
+
+/** Send to every socket in a room (e.g. a chat conversation id), or in any of several rooms (each socket once). */
+export function toRoom(room, event, payload) {
+  if (!room || (Array.isArray(room) && !room.length)) return;
+  io?.to(Array.isArray(room) ? room.map(String) : String(room)).emit(event, payload);
+}

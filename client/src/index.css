@@ -109,6 +109,7 @@
   --animate-fade-in-right: fade-in-right 0.3s ease-out both;
   --animate-shake: shake 0.4s ease-in-out;
   --animate-scan: scan 2.4s ease-in-out infinite;
+  --animate-float-up: float-up 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 
   @keyframes blink {
     to {
@@ -145,6 +146,24 @@
     }
     75% {
       transform: translateX(4px);
+    }
+  }
+  /* Live reactions rising over the player. Set inline: --drift (sideways sway), --rise (distance, px) */
+  @keyframes float-up {
+    0% {
+      opacity: 0;
+      transform: translate(0, 0) scale(0.6);
+    }
+    12% {
+      opacity: 1;
+      transform: translate(calc(var(--drift, 0px) * 0.2), calc(var(--rise, -200px) * 0.12)) scale(1);
+    }
+    70% {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+      transform: translate(var(--drift, 0px), var(--rise, -200px)) scale(1.1);
     }
   }
   @keyframes scan {

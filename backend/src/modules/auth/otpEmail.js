@@ -16,7 +16,7 @@ const CREATOR = {
   links: [
     { id: "linkedin", label: "LinkedIn", url: "https://www.linkedin.com/in/aditya1-raut" },
     { id: "github", label: "GitHub", url: "https://github.com/adity1raut" },
-    { id: "website", label: "adityaraut.me", url: "https://www.adityaraut.me/" },
+    { id: "website", label: "Portfolio", url: "https://www.adityaraut.me/" },
   ],
 };
 
@@ -44,14 +44,14 @@ const COPY = {
     subject: `Your ${BRAND} verification code`,
     eyebrow: "Verify email",
     title: "Confirm your email",
-    intro: "Enter this code on the sign-up screen to verify your email and finish creating your account.",
+    intro: `Enter this code on the ${BRAND} sign-up screen to verify your email and finish creating your account.`,
     ignore: "Didn't try to sign up? You can safely ignore this email.",
   },
   reset: {
     subject: `Your ${BRAND} password reset code`,
     eyebrow: "Password reset",
     title: "Reset your password",
-    intro: "Enter this code on the reset screen to choose a new password.",
+    intro: `Enter this code on the ${BRAND} password reset screen to choose a new password.`,
     ignore: "Didn't ask to reset your password? Ignore this email — your password stays the same.",
   },
 };

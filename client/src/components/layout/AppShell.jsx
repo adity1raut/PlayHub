@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Bell, ChevronsUpDown, FileText, LogOut, Menu, UserRound, X } from "lucide-react";
+import { Bell, ChevronsUpDown, FileText, LogOut, Menu, Settings, UserRound, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -10,6 +10,7 @@ import { Avatar, CountBadge, IconButton, Logo, ScanBars, StatusDot } from "../ui
 import { cn } from "../../lib/cn";
 import { MOBILE_NAV, NAV_GROUPS, isNavActive } from "./nav";
 import { ThemeSwitch } from "./ThemeSwitch";
+import NotificationPermissionPrompt from "../../features/notifications/NotificationPermissionPrompt";
 
 function useCartCount() {
   const { cart } = useProduct() ?? {};
@@ -61,6 +62,9 @@ function AccountMenu() {
           </button>
           <button role="menuitem" type="button" onClick={() => go("/myposts")} className={menuItem}>
             <FileText /> My posts
+          </button>
+          <button role="menuitem" type="button" onClick={() => go("/settings")} className={menuItem}>
+            <Settings /> Settings
           </button>
           <div className="-mx-1 my-1 h-px bg-border" />
           <button
@@ -247,12 +251,22 @@ function MobileBottomNav() {
 // Routes that manage their own scrolling and fill the viewport (e.g. chat)
 const FULL_HEIGHT = ["/chat"];
 
-/** Keep the signed-in user's own followers/following fresh when a follow involves them. */
+/**
+ * Keep the signed-in user fresh: their followers/following when a follow involves them, and
+ * profile / settings edits made in another tab (the profile event is public, so re-read the
+ * account for private fields like the email).
+ */
 function useLiveSelfSync() {
-  const { user, refreshUser } = useAuth();
+  const { user, setUser, refreshUser } = useAuth();
   const me = user?._id ? String(user._id) : null;
   useSocketEvent("follow:updated", (e) => {
     if (me && (e.targetId === me || e.followerId === me)) refreshUser();
+  });
+  useSocketEvent("user:updated", (e) => {
+    if (me && e?.userId === me) refreshUser();
+  });
+  useSocketEvent("settings:updated", (settings) => {
+    if (settings) setUser((u) => (u ? { ...u, settings } : u));
   });
 }
 
@@ -308,6 +322,7 @@ export default function AppShell() {
       </div>
 
       <MobileBottomNav />
+      <NotificationPermissionPrompt />
     </div>
   );
 }

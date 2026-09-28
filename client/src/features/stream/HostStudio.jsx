@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  Activity,
   Camera,
   CameraOff,
   Eye,
@@ -15,37 +16,48 @@ import {
 import { Alert, Badge, Button, Corners, IconButton, Modal, ScanBars, Select, StatusDot } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { mediaDevicesSupported, screenShareSupported } from "../../lib/sfu";
-import { useStreamBroadcast } from "./useLiveStream";
+import { useRtcStats } from "../../lib/rtcStats";
+import { groupGuests } from "./useLiveStream";
+import { ConnectionBadge, SpeakingIndicator, StatsPanel } from "./StreamStats";
+import { ReactionsOverlay } from "./Reactions";
+import { AudioOut, StageTile, VideoView } from "./media";
 
-function Preview({ stream, mirrored, className }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (ref.current) ref.current.srcObject = stream || null;
-  }, [stream]);
-  return (
-    <video
-      ref={ref}
-      autoPlay
-      playsInline
-      muted
-      className={cn(className, mirrored && "-scale-x-100")}
-    />
-  );
-}
+const nameOf = (user) => user?.name || user?.username || "Guest";
 
-/** Broadcast console shown to the stream's host instead of the viewer player. */
-export default function HostStudio({ stream, onViewers, onEnd, ending = false }) {
-  const b = useStreamBroadcast(stream._id, { enabled: stream.isLive });
+/**
+ * Broadcast console shown to the stream's host instead of the viewer player. `broadcast` is
+ * useStreamBroadcast (owned by StreamViewer, which also runs the stage). Guests on stage appear as
+ * tiles the host can click to see large; their mic and screen audio play here too.
+ */
+export default function HostStudio({ broadcast: b, onViewers, onEnd, ending = false, reactions = [] }) {
   const [showDevices, setShowDevices] = useState(false);
+  const [pinnedId, setPinnedId] = useState(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   useEffect(() => {
-    onViewers?.(b.viewers);
-  }, [b.viewers, onViewers]);
+    onViewers?.(b.viewers, b.viewerList);
+  }, [b.viewers, b.viewerList, onViewers]);
 
   const onAir = b.status === "live";
-  const main = b.preview.screen || (b.camOn ? b.preview.camera : null);
-  const pip = b.preview.screen && b.camOn ? b.preview.camera : null;
+  // Upload health: sampled slowly for the badge, every second while the stats panel is open
+  const stats = useRtcStats(b.getStats, { enabled: onAir, interval: showStats ? 1000 : 4000 });
+  const guests = Object.values(groupGuests(b.remoteTracks));
+  const videos = [
+    b.preview.screen && { id: "my-screen", stream: b.preview.screen, label: "Your screen", contain: true },
+    ...guests
+      .filter((g) => g.screen && !g.screen.paused)
+      .map((g) => ({ id: g.screen.producerId, track: g.screen.track, label: `${nameOf(g.user)} · screen`, contain: true, userId: g.userId })),
+    b.camOn && b.preview.camera && { id: "my-camera", stream: b.preview.camera, label: "You", mirrored: true, userId: b.selfId },
+  ].filter(Boolean);
+  const main = videos.find((v) => v.id === pinnedId) || videos[0] || null;
+  const tiles = videos.filter((v) => v !== main);
+  const guestAudio = guests
+    .flatMap((g) => [g.mic, g["screen-audio"]])
+    .filter((t) => t && !t.paused)
+    .map((t) => t.track);
+  const speaking = b.audioLevel > 0 ? String(b.speakerId) : null;
+  const myLevel = speaking && speaking === String(b.selfId) ? b.audioLevel : 0;
 
   if (!mediaDevicesSupported()) {
     return (
@@ -60,15 +72,27 @@ export default function HostStudio({ stream, onViewers, onEnd, ending = false })
     <div className="space-y-3">
       <div className="relative aspect-video overflow-hidden border border-border-strong bg-sidebar">
         {main && (
-          <Preview
-            stream={main}
-            mirrored={main === b.preview.camera}
-            className={cn("absolute inset-0 size-full", b.preview.screen ? "object-contain" : "object-cover")}
+          <VideoView
+            track={main.track}
+            stream={main.stream}
+            mirrored={main.mirrored}
+            className={cn("absolute inset-0 size-full", main.contain ? "object-contain" : "object-cover")}
           />
         )}
-        {pip && (
-          <div className="absolute right-3 bottom-3 w-1/4 min-w-24 border border-primary/60 bg-sidebar shadow-float">
-            <Preview stream={pip} mirrored className="aspect-video w-full object-cover" />
+        <AudioOut tracks={guestAudio} />
+        {tiles.length > 0 && (
+          <div className="absolute top-12 right-3 bottom-3 z-[1] flex w-1/4 min-w-24 flex-col justify-end gap-2">
+            {tiles.slice(0, 3).map((t) => (
+              <StageTile
+                key={t.id}
+                track={t.track}
+                stream={t.stream}
+                label={t.label}
+                mirrored={t.mirrored}
+                speaking={Boolean(speaking && t.userId && speaking === String(t.userId))}
+                onClick={() => setPinnedId(t.id)}
+              />
+            ))}
           </div>
         )}
         <div aria-hidden="true" className="pointer-events-none absolute inset-3 sm:inset-4">
@@ -99,6 +123,8 @@ export default function HostStudio({ stream, onViewers, onEnd, ending = false })
           </div>
         )}
 
+        <ReactionsOverlay floating={reactions} />
+
         {onAir && !main && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-grid text-center">
             <CameraOff className="size-7 text-faint" aria-hidden="true" />
@@ -123,11 +149,21 @@ export default function HostStudio({ stream, onViewers, onEnd, ending = false })
                 Muted
               </Badge>
             )}
+            {main?.track && (
+              <Badge variant="info" icon={MonitorUp} className="max-w-44 bg-sidebar">
+                <span className="truncate">{main.label}</span>
+              </Badge>
+            )}
           </span>
-          <Badge variant="secondary" icon={Eye} className="bg-sidebar tabular-nums">
-            {b.viewers}
-          </Badge>
+          <span className="flex items-center gap-2">
+            {onAir && stats && <ConnectionBadge quality={stats.quality} />}
+            <Badge variant="secondary" icon={Eye} className="bg-sidebar tabular-nums">
+              {b.viewers}
+            </Badge>
+          </span>
         </div>
+
+        {showStats && onAir && <StatsPanel stats={stats} mode="host" onClose={() => setShowStats(false)} />}
       </div>
 
       {/* Control deck */}
@@ -166,6 +202,19 @@ export default function HostStudio({ stream, onViewers, onEnd, ending = false })
             disabled={!onAir}
             onClick={() => setShowDevices(true)}
           />
+          <IconButton
+            icon={Activity}
+            label={showStats ? "Hide upload stats" : "Show upload stats"}
+            variant="secondary"
+            active={showStats}
+            disabled={!onAir}
+            onClick={() => setShowStats((v) => !v)}
+          />
+          {onAir && b.micOn && (
+            <span className="ml-1 flex h-10 items-center border border-border px-2" title="Your mic level, as viewers hear it">
+              <SpeakingIndicator level={myLevel} label="You're speaking" />
+            </span>
+          )}
           <span className="ml-1 hidden items-center gap-2 text-[10px] font-bold tracking-[0.14em] text-faint uppercase sm:flex">
             <StatusDot tone={b.linkUp ? "success" : "danger"} pulse={!b.linkUp} />
             {b.linkUp ? "SFU linked" : "Reconnecting"}

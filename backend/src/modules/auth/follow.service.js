@@ -32,12 +32,15 @@ export async function toggleFollow(followerId, targetId, { store = null } = {}) 
     User.updateOne({ _id: followerId }, { [op]: { following: targetId } }),
   ]);
 
-  const [t, f] = await Promise.all([
+  const [t, f, followsBack] = await Promise.all([
     User.findById(targetId).select("followers").lean(),
     User.findById(followerId).select("following").lean(),
+    User.exists({ _id: targetId, following: followerId }),
   ]);
   const result = {
     followed: !alreadyFollowing,
+    // Mutual follow = friends, who can message each other
+    friends: !alreadyFollowing && Boolean(followsBack),
     followersCount: t?.followers?.length ?? 0,
     followingCount: f?.following?.length ?? 0,
   };
@@ -63,7 +66,7 @@ export async function toggleFollow(followerId, targetId, { store = null } = {}) 
     const notifications = getNotificationService();
     const sent = store
       ? notifications?.sendStoreFollowNotification(targetId, followerId, follower.username, store.name)
-      : notifications?.sendFollowNotification(targetId, followerId, follower.username);
+      : notifications?.sendFollowNotification(targetId, followerId, follower.username, { followBack: result.friends });
     sent?.catch((error) => console.error("Follow notification failed:", error.message));
   }
 

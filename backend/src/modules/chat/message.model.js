@@ -13,11 +13,15 @@ const MessageSchema = mongoose.Schema(
       ref: "User",
       required: true,
     },
+    // Text, or the optional caption of an attachment message
     content: {
       type: String,
-      required: true,
+      required: function () {
+        return !this.attachments?.length;
+      },
       trim: true,
       maxLength: 1000,
+      default: "",
     },
     type: {
       type: String,
@@ -49,7 +53,7 @@ const MessageSchema = mongoose.Schema(
     },
     attachments: [
       {
-        filename: String,
+        filename: String, // storage id: Cloudinary public_id, or the file name under uploads/chat
         originalName: String,
         mimetype: String,
         size: Number,

@@ -43,6 +43,8 @@ const Sidebar = ({
   onEndSearch,
   isConnected = true,
   searchInputRef,
+  friends = [],
+  friendsLoading = false,
 }) => {
   const query = searchQuery.trim().replace(/^@/, "").toLowerCase();
   const searching = activeView === "search" || query.length > 0;
@@ -176,6 +178,9 @@ const Sidebar = ({
               loading={loading}
               startConversation={startConversation}
               label={<SectionLabel count={query.length >= 2 && !loading ? searchResults.length : null}>Players</SectionLabel>}
+              friends={friends}
+              friendsLoading={friendsLoading}
+              friendsLabel={<SectionLabel count={friendsLoading ? null : friends.length}>Friends</SectionLabel>}
             />
           </>
         ) : (

@@ -4,11 +4,15 @@ import User from "./user.model.js";
 import generateToken, { authCookieOptions } from "../../utils/generateToken.js";
 import authenticateToken from "../../middleware/auth.js";
 import { toggleFollow } from "./follow.service.js";
+import { chatAccess, friendIdsOf } from "./friends.js";
 import {
   loginUser,
   logoutUser,
   getProfile,
   updateProfile,
+  getSettings,
+  updateSettings,
+  changePassword,
 } from "./auth.controller.js";
 import {
   checkAvailability,
@@ -26,8 +30,8 @@ import {
 
 const router = express.Router();
 
-// Fields other users may see. Email, saved addresses, wishlist and conversations stay private.
-const PUBLIC_USER_EXCLUDE = "-password -email -addresses -wishlist -conversations";
+// Fields other users may see. Email, saved addresses, wishlist, conversations and settings stay private.
+const PUBLIC_USER_EXCLUDE = "-password -email -addresses -wishlist -conversations -settings";
 const PUBLIC_USER_FIELDS = "username profile followers following";
 
 // --- Auth ---
@@ -69,7 +73,10 @@ router.get("/profile/:username", authenticateToken, async (req, res) => {
       .select(PUBLIC_USER_EXCLUDE)
       .lean();
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-    return res.json({ success: true, data: user });
+    // chat.open: you can message them even without being friends (both allow everyone).
+    // Friendship itself is derived live on the client from followers/following.
+    const access = (await chatAccess(req.user.id, [user._id])).get(String(user._id));
+    return res.json({ success: true, data: { ...user, chat: { open: Boolean(access?.open) } } });
   } catch (error) {
     console.error("Profile by username error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
@@ -77,6 +84,11 @@ router.get("/profile/:username", authenticateToken, async (req, res) => {
 });
 
 router.put("/profile", authenticateToken, (req, res) => updateProfile(req, res));
+
+// --- Settings ---
+router.get("/settings", authenticateToken, getSettings);
+router.put("/settings", authenticateToken, updateSettings);
+router.put("/password", authenticateToken, changePassword);
 
 router.post("/profile/:username/follow", authenticateToken, async (req, res) => {
   try {
@@ -116,6 +128,21 @@ router.get("/profile/:username/following", authenticateToken, async (req, res) =
     return res.json({ success: true, data: user.following });
   } catch (error) {
     console.error("Fetch following error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Friends = mutual followers. Public, like the followers / following lists they're derived from.
+router.get("/profile/:username/friends", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username }).select("followers following").lean();
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    const friends = await User.find({ _id: { $in: friendIdsOf(user) } })
+      .select(PUBLIC_USER_FIELDS)
+      .lean();
+    return res.json({ success: true, data: friends });
+  } catch (error) {
+    console.error("Fetch friends error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 });

@@ -50,3 +50,6 @@ coverage/
 # Other temporary files
 tmp/
 temp/
+
+# Chat attachments stored locally (MEDIA_STORAGE=local) are private user files
+uploads/chat/

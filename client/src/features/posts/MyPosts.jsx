@@ -43,12 +43,13 @@ const MyPosts = () => {
   const navigate = useNavigate();
 
   // GET /api/posts/user/:username?page=&limit= → { success, posts, currentPage, hasMore }
-  const fetchMyPosts = async (pageNum = 1, append = false) => {
+  // `silent`: reload in the background (keep the list on screen, no error banner), e.g. after a reconnect
+  const fetchMyPosts = async (pageNum = 1, append = false, { silent = false } = {}) => {
     if (!isAuthenticated || !user?.username) return false;
 
     if (append) setLoadingMore(true);
-    else setLoading(true);
-    setError("");
+    else if (!silent) setLoading(true);
+    if (!silent) setError("");
     try {
       const res = await axios.get(`${API_URL}/api/posts/user/${encodeURIComponent(user.username)}`, {
         params: { page: pageNum, limit: PAGE_SIZE },
@@ -63,15 +64,16 @@ const MyPosts = () => {
         });
         setHasMore(Boolean(res.data.hasMore));
         setPage(res.data.currentPage || pageNum);
+        setError("");
         return true;
       }
-      setError(res.data.message || "Failed to fetch your posts");
+      if (!silent) setError(res.data.message || "Failed to fetch your posts");
       return false;
     } catch (err) {
       console.error("Error fetching posts:", err);
       const message = err.response?.data?.message || "Failed to fetch your posts";
       if (append) toast.error(message);
-      else setError(message);
+      else if (!silent) setError(message);
       return false;
     } finally {
       setLoading(false);
@@ -96,10 +98,14 @@ const MyPosts = () => {
 
   // Realtime: your new posts (from any tab) are prepended; deletions drop out; the
   // like / comment totals follow the live counts (each card updates itself).
-  useSocketEvent("post:created", ({ post } = {}) => {
-    if (!post?._id || !user || idOf(post.author) !== String(user._id)) return;
-    setPosts((prev) => (hasPost(prev, post._id) ? prev : [post, ...prev]));
-  });
+  useSocketEvent(
+    "post:created",
+    ({ post } = {}) => {
+      if (!post?._id || !user || idOf(post.author) !== String(user._id)) return;
+      setPosts((prev) => (hasPost(prev, post._id) ? prev : [post, ...prev]));
+    },
+    { onReconnect: () => fetchMyPosts(1, false, { silent: true }) },
+  );
 
   useSocketEvent("post:deleted", ({ postId } = {}) => {
     if (!postId) return;

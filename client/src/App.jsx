@@ -14,6 +14,7 @@ import ChatApp from "./features/chat/ChatApplication";
 import ProfilePage from "./features/profile/ProfilePage";
 import NotificationPage from "./features/notifications/NotificationsPage";
 import SearchPage from "./features/search/SearchPage";
+import SettingsPage from "./features/settings/SettingsPage";
 import Feed from "./features/posts/PostFeed";
 import MyPosts from "./features/posts/MyPosts";
 import SinglePost from "./features/posts/SinglePost";
@@ -68,6 +69,7 @@ function App() {
           <Route path="/search" element={<SearchPage />} />
           <Route path="/notification" element={<NotificationPage />} />
           <Route path="/notifications" element={<Navigate to="/notification" replace />} />
+          <Route path="/settings" element={<SettingsPage />} />
 
           <Route path="/profile" element={<Navigate to="/profile/me" replace />} />
           <Route path="/profile/me" element={<ProfilePage />} />

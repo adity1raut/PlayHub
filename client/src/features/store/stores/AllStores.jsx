@@ -34,7 +34,7 @@ const ownerIdOf = (store) => String(store?.owner?._id ?? store?.owner ?? "");
 
 function AllStores() {
   const navigate = useNavigate();
-  const { stores, loading, getAllStores, followStore } = useStore();
+  const { stores, setStores, loading, getAllStores, followStore } = useStore();
   const { isAuthenticated, user } = useAuth();
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
@@ -84,13 +84,17 @@ function AllStores() {
     };
   }, [isAuthenticated]);
 
-  const fetchStores = async () => {
+  // `silent`: refresh in the background (no skeleton), e.g. after a reconnect
+  const fetchStores = async ({ silent = false } = {}) => {
     try {
-      const result = await getAllStores({
-        page: currentPage,
-        limit: PAGE_SIZE,
-        search: query || undefined,
-      });
+      const result = await getAllStores(
+        {
+          page: currentPage,
+          limit: PAGE_SIZE,
+          search: query || undefined,
+        },
+        { silent },
+      );
       if (result) {
         setTotalPages(result.totalPages || 1);
         setTotal(result.total || 0);
@@ -175,6 +179,30 @@ function AllStores() {
     if (user?._id && String(e.followerId) === String(user._id)) {
       applyFollowing(e.targetId, Boolean(e.followed));
     }
+  });
+
+  // Realtime: StoreContext renames stores, drops deleted ones and keeps product counts; this
+  // page places new stores (newest first, so on page 1) and keeps the totals right.
+  const setTotalStores = (next) => {
+    setTotal(next);
+    setTotalPages(Math.max(1, Math.ceil(next / PAGE_SIZE)));
+  };
+
+  useSocketEvent(
+    "store:created",
+    ({ store } = {}) => {
+      if (!store?._id || stores.some((s) => s._id === store._id)) return;
+      if (query && !store.name?.toLowerCase().includes(query.toLowerCase())) return;
+      setTotalStores(total + 1);
+      if (currentPage === 1) {
+        setStores((prev) => (prev.some((s) => s._id === store._id) ? prev : [store, ...prev].slice(0, PAGE_SIZE)));
+      }
+    },
+    { onReconnect: () => fetchStores({ silent: true }) },
+  );
+
+  useSocketEvent("store:deleted", ({ storeId } = {}) => {
+    if (stores.some((s) => s._id === String(storeId))) setTotalStores(Math.max(0, total - 1));
   });
 
   const handleFollow = async (store) => {

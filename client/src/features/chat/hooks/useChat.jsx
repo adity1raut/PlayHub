@@ -48,14 +48,23 @@ const SEND_ERRORS = [
   "Conversation not found",
   "Failed to send message",
 ];
+// Server error code when the two players aren't friends (and don't both allow messages from everyone)
+export const CHAT_FORBIDDEN = "CHAT_FORBIDDEN";
+
+/** Whether the thread's composer is open. Unknown (e.g. a thread that just arrived live) counts as open. */
+export const canMessageIn = (conversation) => conversation?.canMessage !== false;
 
 /**
  * Chat state + realtime wiring on top of the shared Socket.IO connection.
  *
  * REST:   GET/POST /api/chat/conversations, GET /api/chat/conversations/:id/messages,
- *         POST /api/chat/messages (fallback while the socket is down)
+ *         POST /api/chat/messages (fallback while the socket is down),
+ *         POST /api/chat/messages/attachment (photos, videos, audio, files)
  * Socket: join-conversation, leave-conversation, send-message, typing-start/stop, mark-as-read
  *         ← new-message, conversation-updated, user-typing, user-stop-typing, message-read, error
+ *
+ * Conversations carry { isFriend, canMessage } from the server: only friends (mutual followers)
+ * can message each other, so a thread whose players stopped being friends is read-only.
  */
 const useChat = (socketOverride, { onSendFailed } = {}) => {
   const { user } = useAuth();
@@ -102,15 +111,22 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
       const response = await axios.get(`${API_URL}/api/chat/conversations`, { withCredentials: true });
       if (response.data.success) {
         const fetched = response.data.conversations || [];
+        const openId = currentIdRef.current;
         setConversations((prev) => {
           // Keep an open conversation that a concurrent create hasn't made it into this response yet
-          const openId = currentIdRef.current;
           if (openId && !fetched.some((c) => c._id === openId)) {
             const open = prev.find((c) => c._id === openId);
             if (open) return [open, ...fetched];
           }
           return fetched;
         });
+        // Friendship may have changed (follow / unfollow) — keep the open thread's composer in step
+        const fresh = openId && fetched.find((c) => c._id === openId);
+        if (fresh) {
+          setCurrentConversation((cur) =>
+            cur?._id === fresh._id ? { ...cur, isFriend: fresh.isFriend, canMessage: fresh.canMessage } : cur,
+          );
+        }
       }
     } catch (error) {
       console.error("Error fetching conversations:", error);
@@ -249,6 +265,13 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
     pendingSendRef.current = null;
   }, []);
 
+  // The server refused a send because the players aren't friends: make the thread read-only
+  const lockConversation = useCallback((conversationId) => {
+    const lock = (c) => (c?._id === conversationId ? { ...c, isFriend: false, canMessage: false } : c);
+    setConversations((prev) => prev.map(lock));
+    setCurrentConversation(lock);
+  }, []);
+
   const clearRemoteTyping = useCallback((conversationId, userId) => {
     const key = `${conversationId}:${userId}`;
     clearTimeout(remoteTypingTimers.current[key]);
@@ -347,11 +370,29 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
       );
     };
 
+    // A player edited their profile (name / avatar): patch conversation members and message senders
+    const onUserUpdated = ({ userId, profile } = {}) => {
+      const uid = idOf(userId);
+      if (!uid || !profile) return;
+      const patchUser = (u) => (u && typeof u === "object" && idOf(u) === uid ? { ...u, profile: { ...u.profile, ...profile } } : u);
+      const hasMember = (c) => c?.members?.some((m) => idOf(m) === uid);
+      const patchConversation = (c) => (hasMember(c) ? { ...c, members: c.members.map(patchUser) } : c);
+      setConversations((prev) => (prev.some(hasMember) ? prev.map(patchConversation) : prev));
+      setCurrentConversation((cur) => (hasMember(cur) ? patchConversation(cur) : cur));
+      setMessages((prev) =>
+        prev.some((m) => idOf(m.sender) === uid)
+          ? prev.map((m) => (idOf(m.sender) === uid ? { ...m, sender: patchUser(m.sender) } : m))
+          : prev,
+      );
+    };
+
     const onError = (error) => {
       const text = error?.message || "Something went wrong";
       const pending = pendingSendRef.current;
-      if (pending && SEND_ERRORS.includes(text)) {
+      const forbidden = error?.code === CHAT_FORBIDDEN;
+      if (pending && (SEND_ERRORS.includes(text) || forbidden)) {
         clearPending();
+        if (forbidden) lockConversation(pending.conversationId);
         toast.error(`Message not sent: ${text}`);
         onSendFailedRef.current?.(pending.content, pending.conversationId);
       } else {
@@ -364,6 +405,7 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
     socket.on("user-typing", onUserTyping);
     socket.on("user-stop-typing", onUserStopTyping);
     socket.on("message-read", onMessageRead);
+    socket.on("user:updated", onUserUpdated);
     socket.on("error", onError);
 
     return () => {
@@ -372,9 +414,10 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
       socket.off("user-typing", onUserTyping);
       socket.off("user-stop-typing", onUserStopTyping);
       socket.off("message-read", onMessageRead);
+      socket.off("user:updated", onUserUpdated);
       socket.off("error", onError);
     };
-  }, [socket, me, receiveMessage, clearPending, clearRemoteTyping]);
+  }, [socket, me, receiveMessage, clearPending, clearRemoteTyping, lockConversation]);
 
   /* ---------- rooms ---------- */
 
@@ -497,13 +540,47 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
         return false;
       } catch (error) {
         console.error("Error sending message:", error);
+        if (error.response?.data?.code === CHAT_FORBIDDEN) lockConversation(conversationId);
         toast.error(error.response?.data?.message || "Message not sent");
         return false;
       } finally {
         setSending(false);
       }
     },
-    [stopTyping, clearPending, fetchMessages, receiveMessage],
+    [stopTyping, clearPending, fetchMessages, receiveMessage, lockConversation],
+  );
+
+  // Photo / video / audio / file with an optional caption. Always HTTP (multipart); the server
+  // then delivers it live like any other message. Resolves true once saved.
+  const sendAttachment = useCallback(
+    async (file, caption = "", { onProgress } = {}) => {
+      const conversationId = currentIdRef.current;
+      if (!file || !conversationId) return false;
+      stopTyping();
+
+      const form = new FormData();
+      form.append("conversationId", conversationId);
+      form.append("content", String(caption ?? "").trim());
+      form.append("file", file);
+      try {
+        const response = await axios.post(`${API_URL}/api/chat/messages/attachment`, form, {
+          withCredentials: true,
+          onUploadProgress: (e) => e.total && onProgress?.(Math.round((e.loaded / e.total) * 100)),
+        });
+        if (response.data?.success && response.data.message?._id) {
+          receiveMessage(response.data.message);
+          return true;
+        }
+        toast.error("File not sent");
+        return false;
+      } catch (error) {
+        console.error("Error sending attachment:", error);
+        if (error.response?.data?.code === CHAT_FORBIDDEN) lockConversation(conversationId);
+        toast.error(error.response?.data?.message || "File not sent");
+        return false;
+      }
+    },
+    [stopTyping, receiveMessage, lockConversation],
   );
 
   // Cleanup timers on unmount
@@ -530,6 +607,7 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
     openConversation,
     closeConversation,
     sendMessage,
+    sendAttachment,
     notifyTyping,
     stopTyping,
     loadingConversations,

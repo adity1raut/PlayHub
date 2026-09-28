@@ -3,6 +3,7 @@ import { TrendingUp } from "lucide-react";
 import { useProduct } from "../../../context/ProductContext";
 import { Eyebrow, Skeleton } from "../../../components/ui";
 import ProductGrid, { PRODUCT_GRID_CLASS } from "./ProductGrid";
+import { useLiveProductList } from "../liveCatalog";
 
 export function TrendingProducts({ limit = 12, className }) {
   const { getTrendingProducts } = useProduct();
@@ -25,6 +26,9 @@ export function TrendingProducts({ limit = 12, className }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [limit]);
+
+  // Live price / stock / ratings; removed products drop out
+  useLiveProductList(trendingProducts, setTrendingProducts);
 
   return (
     <section className={className} aria-label="Trending products">

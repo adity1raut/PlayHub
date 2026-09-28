@@ -2,9 +2,26 @@ import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "./AuthContext";
 import { API_URL as backendUrl } from "../lib/config";
-
+import { useSocketEvent } from "../lib/useSocketEvent";
+import {
+  idOf,
+  inDeletedStore,
+  patchProducts,
+  storeIdOf,
+  withChanges,
+  withRating,
+  withStore,
+} from "../features/store/liveCatalog";
 
 const ProductContext = createContext();
+
+/** Same rule as the server's cart total: Σ price × quantity, 2 decimals. */
+const cartTotalOf = (items) =>
+  Number(
+    items
+      .reduce((sum, i) => sum + (Number(i.product?.price) || 0) * (Number(i.quantity) || 0), 0)
+      .toFixed(2),
+  );
 
 export function ProductProvider({ children }) {
   const { isAuthenticated } = useAuth();
@@ -784,6 +801,68 @@ export function ProductProvider({ children }) {
       getUserAddresses();
     }
   }, [isAuthenticated]);
+
+  // ── Realtime ──────────────────────────────────────────────────────────────
+  // The cart as the server just saved it: changed in another tab, or emptied by checkout
+  useSocketEvent(
+    "cart:updated",
+    ({ cart: saved } = {}) => {
+      if (!saved) return;
+      const items = saved.items || [];
+      setCart({ ...saved, items, totalAmount: Number(saved.totalAmount || 0) });
+      updateCartIcon(items);
+    },
+    { onReconnect: fetchCart },
+  );
+
+  // Saved / unsaved in another tab: hearts follow (the Wishlist page reloads its page itself)
+  useSocketEvent("wishlist:updated", ({ productId, inWishlist, product } = {}) => {
+    if (!productId) return;
+    setWishlist((prev) => {
+      const rest = (Array.isArray(prev) ? prev : []).filter((p) => idOf(p) !== String(productId));
+      return inWishlist ? [...rest, product ?? productId] : rest;
+    });
+  });
+
+  /** Patch (or drop, when `fn` returns null) the cart items and wishlist entries whose product `match`es. */
+  const patchCartAndWishlist = (match, fn) => {
+    setCart((prev) => {
+      const items = Array.isArray(prev.items) ? prev.items : [];
+      if (!items.some((i) => i?.product && match(i.product))) return prev;
+      const next = items.flatMap((i) => {
+        if (!i?.product || !match(i.product)) return [i];
+        const product = fn(i.product);
+        return product ? [{ ...i, product }] : [];
+      });
+      return { ...prev, items: next, totalAmount: cartTotalOf(next) };
+    });
+    setWishlist((prev) => patchProducts(prev, match, fn));
+  };
+
+  /** Removed products leave the cart and wishlist too (the server drops them on its next read). */
+  const dropProducts = (match) => {
+    patchCartAndWishlist(match, () => null);
+    const items = cart.items || [];
+    if (items.some((i) => i?.product && match(i.product))) {
+      updateCartIcon(items.filter((i) => !(i?.product && match(i.product))));
+    }
+  };
+
+  // Live price / stock / name / images and reviews on cart lines and saved products
+  useSocketEvent("product:updated", ({ productId, product } = {}) => {
+    if (product) patchCartAndWishlist((p) => idOf(p) === String(productId), (p) => withChanges(p, product));
+  });
+
+  useSocketEvent("product:rating", (e = {}) => {
+    if (e.review) setWishlist((prev) => patchProducts(prev, (p) => idOf(p) === String(e.productId), (p) => withRating(p, e)));
+  });
+
+  useSocketEvent("store:updated", ({ storeId, store } = {}) => {
+    if (store) patchCartAndWishlist((p) => storeIdOf(p) === String(storeId), (p) => withStore(p, store));
+  });
+
+  useSocketEvent("product:deleted", ({ productId } = {}) => dropProducts((p) => idOf(p) === String(productId)));
+  useSocketEvent("store:deleted", (e = {}) => dropProducts((p) => inDeletedStore(p, e)));
 
   return (
     <ProductContext.Provider

@@ -5,6 +5,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useProduct } from "../../../context/ProductContext";
 import { mediaUrl } from "../../../lib/config";
 import { toast } from "../../../lib/toast";
+import { useSocketEvent } from "../../../lib/useSocketEvent";
 import { cn } from "../../../lib/cn";
 import { Badge, Button, IconButton } from "../../../components/ui";
 import { formatAmount } from "../checkout/razorpayUtils";
@@ -26,6 +27,11 @@ function ProductCard({ product, onWishlistToggle, inWishlist, className }) {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [togglingWishlist, setTogglingWishlist] = useState(false);
   const [wishlistOverride, setWishlistOverride] = useState(null);
+
+  // Toggled in another tab: the server's answer wins over whatever this card last saw
+  useSocketEvent("wishlist:updated", (e = {}) => {
+    if (product && String(e.productId) === String(product._id)) setWishlistOverride(Boolean(e.inWishlist));
+  });
 
   if (!product) return null;
 

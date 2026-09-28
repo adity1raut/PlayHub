@@ -1,6 +1,7 @@
 import Cart from "./cart.model.js";
 import Product from "./product.model.js";
 import Store from "./store.model.js";
+import { toUser } from "../../socket/realtime.js";
 
 const calculateCartTotal = (items) => {
   return items.reduce((total, item) => {
@@ -23,6 +24,19 @@ const getPopulatedCart = async (cartId) => {
     populate: { path: "store", select: "name logo owner" },
   });
 };
+
+/**
+ * The cart as GET /cart returns it (products + their store populated, deleted products
+ * dropped, total worked out), also pushed to all of the owner's open tabs as `cart:updated`
+ * so their cart page and cart badge follow.
+ */
+export function publishCart(userId, cart) {
+  const view = cart.toObject();
+  view.items = view.items.filter((item) => item.product != null);
+  view.totalAmount = Number(calculateCartTotal(view.items).toFixed(2));
+  toUser(userId, "cart:updated", { cart: view });
+  return view;
+}
 
 export async function addToCart(req, res) {
   try {
@@ -66,14 +80,8 @@ export async function addToCart(req, res) {
     cart.updatedAt = new Date();
     await cart.save();
 
-    const populatedCart = await getPopulatedCart(cart._id);
-    const totalAmount = calculateCartTotal(populatedCart.items);
-
-    res.status(200).json({
-      success: true,
-      ...populatedCart.toObject(),
-      totalAmount: Number(totalAmount.toFixed(2)),
-    });
+    const view = publishCart(req.user._id, await getPopulatedCart(cart._id));
+    res.status(200).json({ success: true, ...view });
   } catch (error) {
     console.error("Error in addToCart:", error);
     res.status(500).json({ error: error.message });
@@ -152,14 +160,8 @@ export async function updateCartItem(req, res) {
     cart.updatedAt = new Date();
     await cart.save();
 
-    const populatedCart = await getPopulatedCart(cart._id);
-    const totalAmount = calculateCartTotal(populatedCart.items);
-
-    res.status(200).json({
-      success: true,
-      ...populatedCart.toObject(),
-      totalAmount: Number(totalAmount.toFixed(2)),
-    });
+    const view = publishCart(req.user._id, await getPopulatedCart(cart._id));
+    res.status(200).json({ success: true, ...view });
   } catch (error) {
     console.error("Error in updateCartItem:", error);
     res.status(500).json({ error: error.message });
@@ -187,14 +189,8 @@ export async function removeFromCart(req, res) {
     cart.updatedAt = new Date();
     await cart.save();
 
-    const populatedCart = await getPopulatedCart(cart._id);
-    const totalAmount = calculateCartTotal(populatedCart.items);
-
-    res.status(200).json({
-      success: true,
-      ...populatedCart.toObject(),
-      totalAmount: Number(totalAmount.toFixed(2)),
-    });
+    const view = publishCart(req.user._id, await getPopulatedCart(cart._id));
+    res.status(200).json({ success: true, ...view });
   } catch (error) {
     console.error("Error in removeFromCart:", error);
     res.status(500).json({ error: error.message });
@@ -209,6 +205,7 @@ export async function clearCart(req, res) {
     cart.items = [];
     cart.updatedAt = new Date();
     await cart.save();
+    publishCart(req.user._id, cart);
 
     res.status(200).json({
       success: true,

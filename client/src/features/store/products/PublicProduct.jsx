@@ -31,6 +31,8 @@ import {
 import { cn } from "../../../lib/cn";
 import { mediaUrl } from "../../../lib/config";
 import { toast } from "../../../lib/toast";
+import { useSocketEvent } from "../../../lib/useSocketEvent";
+import { idOf, useLiveProductList } from "../liveCatalog";
 
 const productsPerPage = 12;
 const formatPrice = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
@@ -91,7 +93,7 @@ function Rating({ product }) {
 
 export default function PublicProducts() {
   const navigate = useNavigate();
-  const { stores, getAllStores } = useStore();
+  const { stores, getAllStores, setStores } = useStore();
   const { getAllProducts, searchProducts, addToCart, toggleWishlist, getUserWishlist, wishlist, isInCart } =
     useProduct();
   const { isAuthenticated } = useAuth();
@@ -135,10 +137,13 @@ export default function PublicProducts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applied, selectedStore, sortBy, currentPage]);
 
-  const fetchProducts = async () => {
+  // `silent`: refresh in the background (no skeleton; a failure keeps what's shown)
+  const fetchProducts = async ({ silent = false } = {}) => {
     const id = ++requestRef.current;
-    setLoading(true);
-    setError(null);
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     const [sort, order] = SORTS[sortBy] || SORTS.name;
     const base = { page: currentPage, limit: productsPerPage, sort, order };
     const filtered = applied.q || selectedStore || applied.min || applied.max;
@@ -160,15 +165,49 @@ export default function PublicProducts() {
       console.error("Error fetching products:", err);
     }
     if (id !== requestRef.current) return;
+    if (!data && silent) {
+      setLoading(false);
+      return;
+    }
 
     let list = data?.products || [];
     if (sortBy === "rating") list = [...list].sort((a, b) => avgRating(b) - avgRating(a));
     setProducts(list);
     setTotalPages(Math.max(1, data?.totalPages || 1));
     setTotal(data?.total ?? list.length);
-    if (!data) setError("Couldn't load products. Please try again.");
+    setError(data ? null : "Couldn't load products. Please try again.");
     setLoading(false);
   };
+
+  // Realtime: price / stock / rating / store changes patch in place and removed products drop
+  // out; a new in-stock product that could match refreshes the page in the background (its
+  // spot depends on the sort, filters and paging).
+  useLiveProductList(products, setProducts, { onRemoved: (n) => setTotal((t) => Math.max(0, t - n)) });
+
+  useSocketEvent(
+    "product:created",
+    ({ storeId, product } = {}) => {
+      if (product?.stock > 0 && (!selectedStore || selectedStore === String(storeId))) fetchProducts({ silent: true });
+    },
+    {
+      onReconnect: () => {
+        fetchProducts({ silent: true });
+        getAllStores({ page: 1, limit: 100 }, { silent: true });
+      },
+    },
+  );
+
+  // The store filter: StoreContext renames / drops stores; new ones are added here
+  useSocketEvent("store:created", ({ store } = {}) => {
+    if (store?._id) setStores((prev) => (prev.some((s) => idOf(s) === idOf(store)) ? prev : [...prev, store]));
+  });
+
+  useSocketEvent("store:deleted", ({ storeId } = {}) => {
+    if (selectedStore && selectedStore === String(storeId)) {
+      setSelectedStore("");
+      setCurrentPage(1);
+    }
+  });
 
   const clearFilters = () => {
     setSearchTerm("");

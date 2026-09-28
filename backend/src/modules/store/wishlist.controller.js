@@ -1,5 +1,6 @@
 import Product from "./product.model.js";
 import User from "../auth/user.model.js";
+import { toUser } from "../../socket/realtime.js";
 
 export async function addToWishlist(req, res) {
   try {
@@ -13,13 +14,18 @@ export async function addToWishlist(req, res) {
 
     const isInWishlist = user.wishlist.includes(productId);
 
+    // Hearts and the wishlist page in the user's other tabs follow along (`product` only when
+    // added, shaped like GET /wishlist items)
     if (isInWishlist) {
       user.wishlist = user.wishlist.filter((id) => id.toString() !== productId);
       await user.save();
+      toUser(req.user._id, "wishlist:updated", { productId, inWishlist: false });
       res.status(200).json({ message: "Removed from wishlist", inWishlist: false });
     } else {
       user.wishlist.push(productId);
       await user.save();
+      await product.populate("store", "name logo");
+      toUser(req.user._id, "wishlist:updated", { productId, inWishlist: true, product });
       res.status(200).json({ message: "Added to wishlist", inWishlist: true });
     }
   } catch (error) {

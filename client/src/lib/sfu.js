@@ -6,6 +6,7 @@ import { Device } from "mediasoup-client";
  */
 
 const REQUEST_TIMEOUT = 12000;
+const ICE_GRACE_MS = 2500; // a "disconnected" media path often recovers on its own; restart ICE after this
 
 // Camera is sent as 3 simulcast layers so each viewer gets the quality their
 // connection can handle; the SFU picks the layer per viewer.
@@ -22,11 +23,25 @@ async function request(socket, event, data) {
   return res;
 }
 
+/** Quality choices for a simulcast (camera) consumer — see QUALITY_LAYERS on the server. */
+export const QUALITY_OPTIONS = [
+  { value: "auto", label: "Auto" },
+  { value: "medium", label: "Medium" },
+  { value: "low", label: "Low (data saver)" },
+];
+/** Simulcast layer index → what the viewer is receiving (CAMERA_ENCODINGS order). */
+export const LAYER_LABELS = ["Low", "Medium", "High"];
+
 export class SfuSession {
-  constructor(socket, streamId, { onTrack, onTrackEnded, onProducerState, onViewers, onClosed } = {}) {
+  /**
+   * handlers: onTrack, onTrackEnded, onProducerState(producerId, paused), onViewers(count, viewers),
+   * onClosed(reason), onLayers(producerId, spatialLayer), onAudioLevel(level 0-1),
+   * onConnectionState(direction, state)
+   */
+  constructor(socket, streamId, handlers = {}) {
     this.socket = socket;
     this.streamId = String(streamId);
-    this.handlers = { onTrack, onTrackEnded, onProducerState, onViewers, onClosed };
+    this.handlers = handlers;
     this.device = null;
     this.sendTransport = null;
     this.recvTransport = null;
@@ -36,16 +51,22 @@ export class SfuSession {
     this.listeners = [];
   }
 
-  /** Join the stream's media room. Returns { isHost, producers }. */
+  /** Join the stream's media room. Returns { isHost, producers (other people's), stage, userId }. */
   async join() {
-    const { rtpCapabilities, isHost, producers } = await request(this.socket, "sfu:join", {
+    const { rtpCapabilities, isHost, producers, stage, userId } = await request(this.socket, "sfu:join", {
       streamId: this.streamId,
     });
     this.device = await Device.factory();
     await this.device.load({ routerRtpCapabilities: rtpCapabilities });
     this.isHost = isHost;
+    this.selfId = String(userId);
     this.listen();
-    return { isHost, producers };
+    return { isHost, stage, userId: this.selfId, producers: producers.filter((p) => !this.isOwn(p)) };
+  }
+
+  /** Our own tracks (this or another of our tabs) are never played back to us. */
+  isOwn(producer) {
+    return producer?.userId != null && String(producer.userId) === this.selfId;
   }
 
   listen() {
@@ -56,12 +77,15 @@ export class SfuSession {
       this.socket.on(event, handler);
       this.listeners.push([event, handler]);
     };
-    add("sfu:new-producer", (p) => !this.isHost && this.consume(p).catch(() => {}));
+    // The host receives guests' tracks too; nobody receives their own
+    add("sfu:new-producer", (p) => !this.isOwn(p) && this.consume(p).catch(() => {}));
     add("sfu:producer-closed", ({ producerId }) => this.dropConsumer(producerId));
     add("sfu:producer-paused", ({ producerId }) => this.handlers.onProducerState?.(producerId, true));
     add("sfu:producer-resumed", ({ producerId }) => this.handlers.onProducerState?.(producerId, false));
-    add("sfu:viewers", ({ count }) => this.handlers.onViewers?.(count));
+    add("sfu:viewers", ({ count, viewers }) => this.handlers.onViewers?.(count, viewers || []));
     add("sfu:room-closed", ({ reason }) => this.handlers.onClosed?.(reason));
+    add("sfu:layers", ({ producerId, spatialLayer }) => this.handlers.onLayers?.(producerId, spatialLayer));
+    add("sfu:audio-level", ({ level, userId }) => this.handlers.onAudioLevel?.(level, userId ?? null));
   }
 
   wireTransport(transport) {
@@ -74,7 +98,37 @@ export class SfuSession {
         .then(() => callback())
         .catch(errback);
     });
+
+    // Media path broke while the socket is still up (Wi-Fi ↔ 4G, sleep/resume): restart ICE
+    // on the same transport instead of tearing the whole stream down.
+    let graceTimer = null;
+    transport.on("connectionstatechange", (state) => {
+      this.handlers.onConnectionState?.(transport.direction, state);
+      clearTimeout(graceTimer);
+      if (state === "failed") this.restartIce(transport);
+      else if (state === "disconnected") {
+        graceTimer = setTimeout(() => {
+          if (transport.connectionState === "disconnected") this.restartIce(transport);
+        }, ICE_GRACE_MS);
+      }
+    });
     return transport;
+  }
+
+  async restartIce(transport) {
+    if (this.closed || transport.closed || transport.restarting) return;
+    transport.restarting = true;
+    try {
+      const { iceParameters } = await request(this.socket, "sfu:restart-ice", {
+        streamId: this.streamId,
+        transportId: transport.id,
+      });
+      await transport.restartIce({ iceParameters });
+    } catch (e) {
+      console.warn("ICE restart failed:", e.message); // a socket reconnect rebuilds the session anyway
+    } finally {
+      transport.restarting = false;
+    }
   }
 
   async createTransport(direction) {
@@ -102,6 +156,7 @@ export class SfuSession {
       kind: data.kind,
       rtpParameters: data.rtpParameters,
     });
+    consumer.appData.simulcast = data.type === "simulcast";
     this.consumers.set(producerId, consumer);
     this.handlers.onTrack?.({
       producerId,
@@ -109,12 +164,31 @@ export class SfuSession {
       source: data.source || source,
       track: consumer.track,
       paused: data.producerPaused,
+      simulcast: data.type === "simulcast",
+      userId: data.userId ?? null,
+      role: data.role ?? "host",
+      user: data.user ?? null,
     });
     await request(this.socket, "sfu:resume-consumer", { streamId: this.streamId, consumerId: consumer.id });
   }
 
   async consumeAll(producers) {
-    for (const p of producers) await this.consume(p).catch((e) => console.warn("consume failed:", e.message));
+    for (const p of producers) {
+      if (!this.isOwn(p)) await this.consume(p).catch((e) => console.warn("consume failed:", e.message));
+    }
+  }
+
+  /** Cap the simulcast layer the SFU sends for this track: "auto" | "medium" | "low". */
+  async setQuality(producerId, quality) {
+    const consumer = this.consumers.get(producerId);
+    if (!consumer || consumer.closed || !consumer.appData.simulcast) return;
+    await request(this.socket, "sfu:set-quality", { streamId: this.streamId, consumerId: consumer.id, quality });
+  }
+
+  /** RTCStatsReport of the receiving (viewer) or sending (host) transport, or null. */
+  getStats(direction = "recv") {
+    const transport = direction === "send" ? this.sendTransport : this.recvTransport;
+    return transport && !transport.closed ? transport.getStats() : Promise.resolve(null);
   }
 
   dropConsumer(producerId) {

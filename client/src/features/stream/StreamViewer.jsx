@@ -1,18 +1,19 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowLeft,
-  CalendarClock,
   Clock,
+  Eye,
   Facebook,
   Flag,
+  Heart,
   Link2,
   MessageSquare,
+  TrendingUp,
   Twitter,
   UserCheck,
   UserPlus,
-  Users,
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
@@ -20,11 +21,17 @@ import { useSocket } from "../../context/SocketContext";
 import StreamPlayer from "./StreamPlayer";
 import HostStudio from "./HostStudio";
 import StreamChat from "./StreamChat";
+import { ReactionBar } from "./Reactions";
+import { useStreamReactions } from "./useStreamReactions";
+import StagePanel from "./StagePanel";
+import { useStage } from "./useStage";
+import { groupGuests, useGuestMedia, useStreamBroadcast, useStreamWatch } from "./useLiveStream";
 import {
   Avatar,
   Badge,
   Button,
   Card,
+  CardBar,
   EmptyState,
   IconButton,
   LoadingBlock,
@@ -32,7 +39,9 @@ import {
   StatusDot,
 } from "../../components/ui";
 import { API_URL as backendUrl } from "../../lib/config";
+import { cn } from "../../lib/cn";
 import { toast } from "../../lib/toast";
+import { useSocketEvent } from "../../lib/useSocketEvent";
 
 const EMPTY = [];
 const idOf = (v) => (v && typeof v === "object" ? v._id : v);
@@ -51,8 +60,10 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [stream, setStream] = useState(initialStream || null);
-  const [hasJoined, setHasJoined] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
+  const [watchers, setWatchers] = useState([]); // who's in the SFU room right now
+  // Whole-stream counters, pushed live by the server (`stream:stats`)
+  const [counters, setCounters] = useState({ peakViewers: 0, messages: 0, reactions: 0 });
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [loading, setLoading] = useState(!initialStream);
@@ -76,7 +87,12 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
       const response = await axios.get(`${backendUrl}/api/stream/${sid}`);
       if (response.status === 200) {
         setStream(response.data);
-        setViewerCount(response.data.viewers?.length || 0);
+        setViewerCount(response.data.liveViewers ?? 0);
+        setCounters({
+          peakViewers: response.data.peakViewers ?? 0,
+          messages: response.data.messagesCount ?? response.data.liveChat?.length ?? 0,
+          reactions: response.data.reactionsCount ?? 0,
+        });
       }
     } catch (err) {
       console.error("Error fetching stream:", err);
@@ -96,7 +112,7 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
   useEffect(() => {
     if (initialStream) {
       setStream(initialStream);
-      setViewerCount(initialStream.viewers?.length || 0);
+      setViewerCount(initialStream.liveViewers ?? 0);
       setLoading(false);
     } else if (id) {
       fetchStream(id);
@@ -109,47 +125,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
     const following = Array.isArray(user?.following) ? user.following : [];
     setIsFollowing(following.some((f) => String(idOf(f)) === String(hostId)));
   }, [hostId, user?.following]);
-
-  // Join stream (viewer list) while live; leave on unmount / when it ends.
-  const activeJoinRef = useRef(null);
-
-  const handleJoinStream = useCallback(async (sid) => {
-    try {
-      const response = await axios.post(`${backendUrl}/api/stream/${sid}/join`);
-      if (response.status === 200) {
-        setHasJoined(true);
-        setViewerCount(response.data.viewers);
-      }
-    } catch (err) {
-      console.error("Error joining stream:", err);
-    }
-  }, []);
-
-  const handleLeaveStream = useCallback(async (sid) => {
-    try {
-      const response = await axios.post(`${backendUrl}/api/stream/${sid}/leave`);
-      if (response.status === 200) {
-        setHasJoined(false);
-      }
-    } catch (err) {
-      console.error("Error leaving stream:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isAuthenticated || isHost || !streamId || !stream?.isLive) return undefined;
-    activeJoinRef.current = streamId;
-    handleJoinStream(streamId);
-
-    return () => {
-      activeJoinRef.current = null;
-      const sid = streamId;
-      // Deferred so a StrictMode re-mount (which re-joins immediately) cancels the leave.
-      setTimeout(() => {
-        if (activeJoinRef.current !== sid) handleLeaveStream(sid);
-      }, 0);
-    };
-  }, [streamId, stream?.isLive, isAuthenticated, isHost, handleJoinStream, handleLeaveStream]);
 
   // Realtime room: chat messages + stream-ended arrive on `stream_<id>`.
   useEffect(() => {
@@ -171,12 +146,44 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
     };
   }, [socket, isConnected, streamId]);
 
-  // Refresh stream data periodically (viewer count, status)
-  useEffect(() => {
-    if (!streamId || !stream?.isLive) return undefined;
-    const interval = setInterval(() => fetchStream(streamId, { silent: true }), 30000);
-    return () => clearInterval(interval);
-  }, [streamId, stream?.isLive, fetchStream]);
+  // Live counters (viewers, peak, messages, reactions). After a reconnect, refetch in case
+  // anything (e.g. the stream ending) was missed while offline.
+  useSocketEvent(
+    "stream:stats",
+    (stats = {}) => {
+      if (String(stats.streamId) !== String(streamId)) return;
+      setViewerCount(stats.viewers ?? 0);
+      setCounters({ peakViewers: stats.peakViewers ?? 0, messages: stats.messages ?? 0, reactions: stats.reactions ?? 0 });
+    },
+    { onReconnect: () => streamId && fetchStream(streamId, { silent: true }) },
+  );
+
+  const reactions = useStreamReactions(streamId, { enabled: Boolean(stream?.isLive) });
+
+  // Media sessions live here (not in the player/studio) so the stage can publish through them:
+  // the host broadcasts, everyone else watches — and guests on stage share their screen and mic
+  const live = Boolean(stream?.isLive);
+  const [retryKey, setRetryKey] = useState(0);
+  const broadcast = useStreamBroadcast(streamId, { enabled: live && isHost });
+  const watch = useStreamWatch(streamId, { enabled: live && !isHost, retryKey });
+  const media = isHost ? broadcast : watch;
+  const stage = useStage(streamId, { initial: media.stage, isHost, streamTitle: stream?.title });
+  const guestMedia = useGuestMedia(watch, { onStage: live && !isHost && stage.status === "approved" });
+
+  // What each guest is sharing right now (for the stage list)
+  const stageMedia = useMemo(() => {
+    const groups = isHost ? groupGuests(broadcast.remoteTracks) : watch.guests;
+    const out = {};
+    for (const [userId, g] of Object.entries(groups)) {
+      out[userId] = { mic: Boolean(g.mic && !g.mic.paused), screen: Boolean(g.screen && !g.screen.paused) };
+    }
+    return out;
+  }, [isHost, broadcast.remoteTracks, watch.guests]);
+
+  const handleViewers = useCallback((count, list) => {
+    setViewerCount(count);
+    if (Array.isArray(list)) setWatchers(list);
+  }, []);
 
   // Follow / unfollow the host (toggle endpoint)
   const handleFollowToggle = async () => {
@@ -313,7 +320,7 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
 
   const host = stream.host || {};
   const hostName = host.profile?.name || host.username;
-  const chatCount = stream.liveChat?.length || 0;
+  const uniqueViewers = Array.isArray(stream.viewers) ? stream.viewers.length : 0;
 
   return (
     <Page wide>
@@ -329,9 +336,43 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
         {/* Left column: player + info */}
         <div className="min-w-0 space-y-6">
           {isHost && stream.isLive ? (
-            <HostStudio stream={stream} onViewers={setViewerCount} onEnd={handleEndStream} ending={ending} />
+            <HostStudio
+              broadcast={broadcast}
+              onViewers={handleViewers}
+              onEnd={handleEndStream}
+              ending={ending}
+              reactions={reactions.floating}
+            />
           ) : (
-            <StreamPlayer stream={stream} viewerCount={viewerCount} onViewers={setViewerCount} />
+            <StreamPlayer
+              stream={stream}
+              watch={watch}
+              onRetry={() => setRetryKey((k) => k + 1)}
+              viewerCount={viewerCount}
+              onViewers={handleViewers}
+              reactions={reactions.floating}
+              localScreen={guestMedia.screenPreview}
+            />
+          )}
+
+          {stream.isLive && isAuthenticated && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <ReactionBar onReact={reactions.send} disabled={!reactions.canSend} />
+              <p className="text-[11px] text-faint">Reactions float over the stream for everyone watching.</p>
+            </div>
+          )}
+
+          {stream.isLive && (
+            <StagePanel
+              stage={stage}
+              isHost={isHost}
+              hostUsername={stream.host?.username}
+              selfId={user?._id}
+              media={stageMedia}
+              speakerId={media.audioLevel > 0 ? media.speakerId : null}
+              guestMedia={isHost ? null : guestMedia}
+              ready={isHost ? broadcast.linkUp : watch.status === "live" || watch.status === "waiting"}
+            />
           )}
 
           <Card corners>
@@ -347,7 +388,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
                     ) : (
                       <Badge variant="secondary">Ended</Badge>
                     )}
-                    {hasJoined && <Badge variant="success">In room</Badge>}
                   </div>
                   <h1 className="text-lg font-extrabold tracking-[0.08em] break-words text-foreground uppercase sm:text-xl">
                     {stream.title}
@@ -399,21 +439,15 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
             </div>
 
             {/* Stats row */}
-            <dl className="grid grid-cols-2 gap-px border-t border-border bg-border sm:grid-cols-4">
+            <dl className="grid grid-cols-2 gap-px border-t border-border bg-border sm:grid-cols-5">
               {[
-                { icon: Users, label: "Viewers", value: viewerCount },
+                { icon: Eye, label: stream.isLive ? "Watching" : "Viewers", value: stream.isLive ? viewerCount : uniqueViewers },
+                { icon: TrendingUp, label: "Peak", value: counters.peakViewers },
+                { icon: MessageSquare, label: "Messages", value: counters.messages },
+                { icon: Heart, label: "Reactions", value: counters.reactions },
                 { icon: Clock, label: "Duration", value: formatDuration(stream.startedAt, stream.endedAt) },
-                { icon: MessageSquare, label: "Messages", value: chatCount >= 50 ? "50+" : chatCount },
-                {
-                  icon: CalendarClock,
-                  label: stream.endedAt ? "Ended" : "Started",
-                  value: new Date(stream.endedAt || stream.startedAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }),
-                },
-              ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className="bg-card px-5 py-4">
+              ].map(({ icon: Icon, label, value }, i) => (
+                <div key={label} className={cn("bg-card px-5 py-4", i === 4 && "col-span-2 sm:col-span-1")}>
                   <dt className="eyebrow flex items-center gap-1.5 text-faint">
                     <Icon className="size-3.5" aria-hidden="true" />
                     {label}
@@ -423,6 +457,39 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
               ))}
             </dl>
           </Card>
+
+          {stream.isLive && (
+            <Card>
+              <CardBar
+                title="Watching now"
+                right={<span className="text-[11px] text-faint tabular-nums">{viewerCount}</span>}
+              />
+              {watchers.length ? (
+                <ul className="flex flex-wrap gap-2 p-4">
+                  {watchers.map((w) => (
+                    <li key={w._id}>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/profile/${w.username}`)}
+                        title={`@${w.username}`}
+                        className="flex items-center gap-2 border border-border bg-background/60 py-1 pr-2.5 pl-1 text-[11px] transition-colors hover:border-primary/50 hover:bg-accent"
+                      >
+                        <Avatar src={w.profileImage} name={w.name || w.username} size="xs" />
+                        <span className="max-w-32 truncate font-bold text-foreground">{w.name || w.username}</span>
+                      </button>
+                    </li>
+                  ))}
+                  {viewerCount > watchers.length && (
+                    <li className="self-center text-[11px] text-faint">+{viewerCount - watchers.length} more</li>
+                  )}
+                </ul>
+              ) : (
+                <p className="px-5 py-4 text-[11px] text-faint">
+                  <span className="text-primary">&gt;</span> Nobody else is watching yet.
+                </p>
+              )}
+            </Card>
+          )}
 
           {stream.startedAt && (
             <p className="text-[11px] text-faint">
@@ -438,6 +505,8 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
           messages={stream.liveChat || EMPTY}
           isLive={stream.isLive}
           hostId={hostId}
+          slowMode={stream.chatSlowMode || 0}
+          mutes={stream.chatMutes}
           className="h-[32rem] lg:sticky lg:top-8 lg:h-[calc(100dvh-8rem)]"
         />
       </div>

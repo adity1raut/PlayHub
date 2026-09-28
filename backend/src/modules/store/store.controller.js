@@ -2,6 +2,18 @@ import cloudinary from "../../config/cloudinary.js";
 import Product from "./product.model.js";
 import Store from "./store.model.js";
 import User from "../auth/user.model.js";
+import { broadcast } from "../../socket/realtime.js";
+
+/** What `store:created` / `store:updated` carry: the public storefront (owner populated), never its product list. */
+const publicStore = (store) => ({
+  _id: store._id,
+  name: store.name,
+  description: store.description,
+  logo: store.logo,
+  owner: store.owner,
+  createdAt: store.createdAt,
+  updatedAt: store.updatedAt,
+});
 
 export async function getAllStores(req, res) {
   try {
@@ -81,6 +93,7 @@ export async function createStore(req, res) {
       "owner",
       "username profile.name",
     );
+    broadcast("store:created", { storeId: String(store._id), store: publicStore(populatedStore) });
     res.status(201).json(populatedStore);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -123,6 +136,7 @@ export async function updateStore(req, res) {
       { new: true },
     ).populate("owner", "username profile.name");
 
+    broadcast("store:updated", { storeId: String(updatedStore._id), store: publicStore(updatedStore) });
     res.status(200).json(updatedStore);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -131,6 +145,7 @@ export async function updateStore(req, res) {
 
 export async function deleteStore(req, res) {
   try {
+    const productIds = await Product.find({ store: req.store._id }).distinct("_id");
     await Product.deleteMany({ store: req.store._id });
 
     if (req.store.logo) {
@@ -143,6 +158,12 @@ export async function deleteStore(req, res) {
     await User.findByIdAndUpdate(req.user._id, { $unset: { store: 1 } });
     await Store.findByIdAndDelete(req.params.id);
 
+    // Its products went with it: open pages drop them (matched by storeId or productIds)
+    broadcast("store:deleted", {
+      storeId: String(req.store._id),
+      ownerId: String(req.store.owner),
+      productIds: productIds.map(String),
+    });
     res.status(200).json({ message: "Store deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });

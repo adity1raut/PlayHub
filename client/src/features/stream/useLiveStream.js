@@ -20,6 +20,34 @@ const describeMediaError = (error) => {
   }
 };
 
+/** onTrack / onTrackEnded / onProducerState handlers that keep a producerId → track map in state. */
+const trackHandlers = (setTracks, onFirstTrack) => ({
+  onTrack: (t) => {
+    setTracks((prev) => ({ ...prev, [t.producerId]: t }));
+    onFirstTrack?.();
+  },
+  onTrackEnded: (producerId) =>
+    setTracks((prev) => {
+      if (!prev[producerId]) return prev;
+      const next = { ...prev };
+      delete next[producerId];
+      return next;
+    }),
+  onProducerState: (producerId, paused) =>
+    setTracks((prev) => (prev[producerId] ? { ...prev, [producerId]: { ...prev[producerId], paused } } : prev)),
+});
+
+/** Guests' tracks grouped per person: userId → { user, mic, screen, "screen-audio" } */
+export function groupGuests(tracks) {
+  const guests = {};
+  for (const t of Object.values(tracks)) {
+    if (t.role !== "guest" || !t.userId) continue;
+    const g = (guests[t.userId] ||= { userId: t.userId, user: t.user });
+    g[t.source] = t;
+  }
+  return guests;
+}
+
 /* =============================================================== host ==== */
 
 /**
@@ -39,6 +67,12 @@ export function useStreamBroadcast(streamId, { enabled = true } = {}) {
   const [micOn, setMicOn] = useState(true);
   const [screenOn, setScreenOn] = useState(false);
   const [viewers, setViewers] = useState(0);
+  const [viewerList, setViewerList] = useState([]);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [speakerId, setSpeakerId] = useState(null); // loudest mic right now (host or a guest)
+  const [selfId, setSelfId] = useState(null);
+  const [remoteTracks, setRemoteTracks] = useState({}); // guests on stage: producerId → track
+  const [stage, setStage] = useState(null); // stage state from the last join (useStage keeps it live)
   const [preview, setPreview] = useState({ camera: null, screen: null });
   const [devices, setDevices] = useState({ cameras: [], mics: [], cameraId: "", micId: "" });
   const [linkUp, setLinkUp] = useState(false);
@@ -84,13 +118,27 @@ export function useStreamBroadcast(streamId, { enabled = true } = {}) {
   // Media room session follows the socket connection
   useEffect(() => {
     if (!enabled || !socket || !isConnected || !streamId) return undefined;
+    setRemoteTracks({});
     const session = new SfuSession(socket, streamId, {
-      onViewers: setViewers,
+      ...trackHandlers(setRemoteTracks),
+      onViewers: (count, list) => {
+        setViewers(count);
+        setViewerList(list);
+      },
+      onAudioLevel: (level, userId) => {
+        setAudioLevel(level);
+        setSpeakerId(userId);
+      },
       onClosed: () => setStatus("idle"),
     });
     sessionRef.current = session;
     readyRef.current = session.join().then(
-      () => setLinkUp(true),
+      ({ producers, stage: joinedStage, userId }) => {
+        setSelfId(userId);
+        setStage(joinedStage);
+        setLinkUp(true);
+        session.consumeAll(producers); // guests already sharing
+      },
       (e) => {
         setError(e.message);
         setStatus("error");
@@ -235,6 +283,9 @@ export function useStreamBroadcast(streamId, { enabled = true } = {}) {
   // Release camera/mic when leaving the page
   useEffect(() => () => Object.values(tracksRef.current).forEach((t) => t?.stop()), []);
 
+  // Upload stats for the host's stats overlay (see lib/rtcStats.js)
+  const getStats = useCallback(() => sessionRef.current?.getStats("send") ?? Promise.resolve(null), []);
+
   return {
     status,
     error,
@@ -244,6 +295,13 @@ export function useStreamBroadcast(streamId, { enabled = true } = {}) {
     micOn,
     screenOn,
     viewers,
+    viewerList,
+    audioLevel,
+    speakerId,
+    selfId,
+    remoteTracks,
+    stage,
+    getStats,
     preview,
     devices,
     start,
@@ -264,6 +322,15 @@ export function useStreamWatch(streamId, { enabled = true, retryKey = 0 } = {}) 
   const [status, setStatus] = useState("connecting"); // connecting | waiting | live | ended | error
   const [error, setError] = useState(null);
   const [viewers, setViewers] = useState(null);
+  const [viewerList, setViewerList] = useState([]);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [layers, setLayers] = useState({}); // producerId → simulcast layer being received
+  const [mediaState, setMediaState] = useState("new"); // receive transport: connected | disconnected | failed…
+  const [speakerId, setSpeakerId] = useState(null);
+  const [selfId, setSelfId] = useState(null);
+  const [stage, setStage] = useState(null); // stage state from the last join (useStage keeps it live)
+  const [sessionGen, setSessionGen] = useState(0); // +1 per joined session (guests re-publish on change)
+  const sessionRef = useRef(null);
 
   useEffect(() => {
     if (!enabled || !streamId) return undefined;
@@ -273,31 +340,34 @@ export function useStreamWatch(streamId, { enabled = true, retryKey = 0 } = {}) 
     }
 
     setTracks({});
+    setLayers({});
     setStatus("connecting");
     setError(null);
     const session = new SfuSession(socket, streamId, {
-      onTrack: (t) => {
-        setTracks((prev) => ({ ...prev, [t.producerId]: t }));
-        setStatus("live");
+      ...trackHandlers(setTracks, () => setStatus("live")),
+      onViewers: (count, list) => {
+        setViewers(count);
+        setViewerList(list);
       },
-      onTrackEnded: (producerId) =>
-        setTracks((prev) => {
-          const next = { ...prev };
-          delete next[producerId];
-          return next;
-        }),
-      onProducerState: (producerId, paused) =>
-        setTracks((prev) => (prev[producerId] ? { ...prev, [producerId]: { ...prev[producerId], paused } } : prev)),
-      onViewers: setViewers,
+      onAudioLevel: (level, userId) => {
+        setAudioLevel(level);
+        setSpeakerId(userId);
+      },
+      onLayers: (producerId, layer) => setLayers((prev) => ({ ...prev, [producerId]: layer })),
+      onConnectionState: (direction, state) => direction === "recv" && setMediaState(state),
       onClosed: () => {
         setTracks({});
         setStatus("ended");
       },
     });
+    sessionRef.current = session;
 
     session
       .join()
-      .then(({ producers }) => {
+      .then(({ producers, stage: joinedStage, userId }) => {
+        setSelfId(userId);
+        setStage(joinedStage);
+        setSessionGen((n) => n + 1);
         if (!producers.length) setStatus("waiting");
         return session.consumeAll(producers);
       })
@@ -306,19 +376,161 @@ export function useStreamWatch(streamId, { enabled = true, retryKey = 0 } = {}) 
         setStatus(/ended/i.test(e.message) ? "ended" : "error");
       });
 
-    return () => session.close();
+    return () => {
+      session.close();
+      if (sessionRef.current === session) sessionRef.current = null;
+    };
   }, [enabled, socket, isConnected, streamId, retryKey]);
+
+  const setQuality = useCallback(
+    (producerId, quality) => sessionRef.current?.setQuality(producerId, quality) ?? Promise.resolve(),
+    [],
+  );
+  const getStats = useCallback(() => sessionRef.current?.getStats("recv") ?? Promise.resolve(null), []);
+
+  // Guests on stage publish through this same session
+  const publish = useCallback(async (track, source) => {
+    const session = sessionRef.current;
+    if (!session) throw new Error("Not connected to the stream yet");
+    return session.publish(track, source);
+  }, []);
+  const unpublish = useCallback((source) => sessionRef.current?.unpublish(source) ?? Promise.resolve(), []);
 
   // Back to "waiting" when the host has no tracks on air
   useEffect(() => {
     if (status === "live" && Object.keys(tracks).length === 0) setStatus("waiting");
   }, [tracks, status]);
 
+  // The host's tracks by source; guests' tracks grouped per person
   const bySource = useMemo(() => {
     const out = {};
-    for (const t of Object.values(tracks)) out[t.source] = t;
+    for (const t of Object.values(tracks)) if (t.role !== "guest") out[t.source] = t;
     return out;
   }, [tracks]);
+  const guests = useMemo(() => groupGuests(tracks), [tracks]);
 
-  return { status, error, viewers, bySource };
+  return {
+    status,
+    error,
+    viewers,
+    viewerList,
+    audioLevel,
+    speakerId,
+    selfId,
+    stage,
+    sessionGen,
+    layers,
+    mediaState,
+    bySource,
+    guests,
+    setQuality,
+    getStats,
+    publish,
+    unpublish,
+  };
+}
+
+/* ============================================================== guest ==== */
+
+/**
+ * A guest's own mic and screen while they're on stage. Each is turned on by a click, so the browser
+ * asks for permission at that moment. Off stage → everything is released. After a reconnect (new
+ * `sessionGen`) the tracks still live are published again.
+ */
+export function useGuestMedia({ publish, unpublish, sessionGen }, { onStage }) {
+  const tracksRef = useRef({}); // source → MediaStreamTrack
+  const [micOn, setMicOn] = useState(false);
+  const [screenOn, setScreenOn] = useState(false);
+  const [screenPreview, setScreenPreview] = useState(null); // MediaStream of our own screen
+  const [busy, setBusy] = useState(null); // "mic" | "screen"
+  const [error, setError] = useState(null);
+
+  const release = useCallback(
+    async (source) => {
+      const track = tracksRef.current[source];
+      if (!track) return;
+      track.stop();
+      delete tracksRef.current[source];
+      await unpublish(source).catch(() => {});
+    },
+    [unpublish],
+  );
+
+  const stopMic = useCallback(async () => {
+    setMicOn(false);
+    await release("mic");
+  }, [release]);
+
+  const stopScreen = useCallback(async () => {
+    setScreenOn(false);
+    setScreenPreview(null);
+    await release("screen");
+    await release("screen-audio");
+  }, [release]);
+
+  const toggleMic = useCallback(async () => {
+    if (tracksRef.current.mic) return stopMic();
+    setBusy("mic");
+    setError(null);
+    try {
+      const media = await navigator.mediaDevices.getUserMedia({ audio: MIC_CONSTRAINTS });
+      const track = media.getAudioTracks()[0];
+      tracksRef.current.mic = track;
+      setMicOn(true);
+      await publish(track, "mic");
+    } catch (e) {
+      await stopMic();
+      setError(e.name ? describeMediaError(e) : e.message);
+    } finally {
+      setBusy(null);
+    }
+  }, [publish, stopMic]);
+
+  const toggleScreen = useCallback(async () => {
+    if (tracksRef.current.screen) return stopScreen();
+    setBusy("screen");
+    setError(null);
+    try {
+      const media = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+      const video = media.getVideoTracks()[0];
+      const audio = media.getAudioTracks()[0];
+      video.contentHint = "detail";
+      video.addEventListener("ended", () => stopScreen()); // browser "Stop sharing" button
+      tracksRef.current.screen = video;
+      if (audio) tracksRef.current["screen-audio"] = audio;
+      setScreenOn(true);
+      setScreenPreview(new MediaStream([video]));
+      await publish(video, "screen");
+      if (audio) await publish(audio, "screen-audio");
+    } catch (e) {
+      await stopScreen();
+      // Closing the browser's picker is a choice, not an error
+      if (e?.name !== "NotAllowedError" && e?.name !== "AbortError") setError(e.message || "Screen sharing failed");
+    } finally {
+      setBusy(null);
+    }
+  }, [publish, stopScreen]);
+
+  // Off stage (left, removed, stream ended): release the mic and screen
+  useEffect(() => {
+    if (!onStage) {
+      stopMic();
+      stopScreen();
+      setError(null);
+    }
+  }, [onStage, stopMic, stopScreen]);
+
+  // New media session after a reconnect: put what's still live back on air
+  useEffect(() => {
+    if (!onStage || !sessionGen) return;
+    for (const [source, track] of Object.entries(tracksRef.current)) {
+      if (track.readyState === "live") publish(track, source).catch((e) => setError(e.message));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionGen]);
+
+  // Leaving the page releases the mic and screen
+  useEffect(() => () => Object.values(tracksRef.current).forEach((t) => t?.stop()), []);
+
+  return { micOn, screenOn, screenPreview, busy, error, clearError: () => setError(null), toggleMic, toggleScreen };
 }

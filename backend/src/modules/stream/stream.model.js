@@ -11,8 +11,20 @@ const StreamSchema = new mongoose.Schema(
 
     isLive: { type: Boolean, default: true },
 
+    // Everyone who watched (unique, filled from the SFU room), and the most at once
     viewers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    peakViewers: { type: Number, default: 0 },
+    reactionsCount: { type: Number, default: 0 },
     liveChat: [{ type: mongoose.Schema.Types.ObjectId, ref: "LiveMessage" }],
+
+    // Chat moderation (host): seconds between messages per viewer, and timed-out viewers
+    chatSlowMode: { type: Number, default: 0 },
+    chatMutes: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        until: { type: Date },
+      },
+    ],
 
     recordedUrl: { type: String },
 

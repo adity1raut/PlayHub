@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Heart, Package, Search, ShoppingCart } from "lucide-react";
 import { useProduct } from "../../../context/ProductContext";
+import { useSocketEvent } from "../../../lib/useSocketEvent";
 import { Button, Card, EmptyState, LoadingBlock, Page, PageHeader } from "../../../components/ui";
 import ProductCard from "../products/ProductCard";
 import { PRODUCT_GRID_CLASS } from "../products/ProductGrid";
@@ -40,6 +41,12 @@ export function Wishlist() {
   const handleWishlistToggle = async () => {
     await fetchWishlist(currentPage);
   };
+
+  // Saved / removed in another tab (or offline for a while): reload the page we're on so the
+  // items, totals and paging stay right
+  useSocketEvent("wishlist:updated", () => fetchWishlist(currentPage), {
+    onReconnect: () => fetchWishlist(currentPage),
+  });
 
   const items = Array.isArray(wishlist) ? wishlist.filter(Boolean) : [];
 

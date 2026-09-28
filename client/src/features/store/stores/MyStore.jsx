@@ -36,6 +36,7 @@ import {
 import { API_URL, mediaUrl } from "../../../lib/config";
 import { toast } from "../../../lib/toast";
 import { useSocketEvent } from "../../../lib/useSocketEvent";
+import { idOf, useLiveProductList } from "../liveCatalog";
 
 const LOW_STOCK = 5;
 const pad = (n) => String(n).padStart(2, "0");
@@ -137,6 +138,47 @@ function MyStore() {
       setAnalyticsKey((k) => k + 1);
     }
   });
+
+  // Realtime: this store's products follow edits, purchases, reviews and removals from any tab
+  // (StoreContext keeps the store itself — renamed, deleted or opened elsewhere).
+  const isMyStore = (storeId) => !!userStore?._id && String(storeId) === String(userStore._id);
+  const refreshAnalytics = () => setAnalyticsKey((k) => k + 1);
+
+  useLiveProductList(storeProducts, setStoreProducts, {
+    onRemoved: (n) => setProductTotal((t) => Math.max(0, t - n)),
+  });
+
+  // Added from another tab: newest first, like the list the API returns
+  useSocketEvent(
+    "product:created",
+    ({ storeId, product } = {}) => {
+      if (!product || !isMyStore(storeId)) return;
+      if (!storeProducts.some((p) => idOf(p) === idOf(product))) {
+        setStoreProducts((prev) => (prev.some((p) => idOf(p) === idOf(product)) ? prev : [product, ...prev]));
+        setProductTotal((t) => t + 1);
+      }
+      refreshAnalytics();
+    },
+    {
+      onReconnect: () => {
+        if (!isAuthenticated) return;
+        getCurrentUserStore();
+        fetchStoreProducts();
+        refreshAnalytics();
+      },
+    },
+  );
+
+  // The analytics panel: in / out of stock counts, product names, ratings and product totals.
+  // (Its stock chart reads `storeProducts`, which is already live.)
+  useSocketEvent("product:updated", ({ storeId, productId, product } = {}) => {
+    if (!product || !isMyStore(storeId)) return;
+    const before = storeProducts.find((p) => idOf(p) === String(productId));
+    const stockFlipped = "stock" in product && (Number(before?.stock) > 0) !== (Number(product.stock) > 0);
+    if (!before || stockFlipped || ("name" in product && product.name !== before.name)) refreshAnalytics();
+  });
+  useSocketEvent("product:rating", ({ storeId } = {}) => isMyStore(storeId) && refreshAnalytics());
+  useSocketEvent("product:deleted", ({ storeId } = {}) => isMyStore(storeId) && refreshAnalytics());
 
   const fetchStoreProducts = async () => {
     if (!userStore?._id) return;

@@ -1,7 +1,7 @@
 {
   "name": "Spawnpoint",
   "short_name": "Spawnpoint",
-  "description": "Gaming community with real-time chat, live streams, posts and a creator marketplace.",
+  "description": "Full-stack gaming community: real-time posts, chat and live streaming, plus online stores with checkout — in a dark, gaming-inspired UI.",
   "id": "/dashboard",
   "start_url": "/dashboard",
   "scope": "/",

@@ -1,4 +1,6 @@
 import Notification from "./notification.model.js";
+import User from "../auth/user.model.js";
+import { NOTIFICATION_GROUPS, settingsOf } from "../auth/settings.js";
 import { pushTitleFor, sendPushToUser } from "./push.service.js";
 
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -11,13 +13,20 @@ class NotificationService {
   /**
    * Save a notification, push it to the recipient's open tabs (socket) and devices (web push).
    * Returns null (and sends nothing) when:
-   *  - the recipient is the actor (no self-notifications), or
+   *  - the recipient is the actor (no self-notifications),
+   *  - the recipient turned this kind of alert off in Settings (settings.notifications), or
    *  - `dedupeMs` is set and the same actor already sent the same kind of alert for the same
    *    link within that window (e.g. follow → unfollow → follow again).
    */
   async createNotification(userId, type, message, link = null, fromUserId = null, { dedupeMs = 0 } = {}) {
     try {
       if (!userId || (fromUserId && String(userId) === String(fromUserId))) return null;
+
+      const group = NOTIFICATION_GROUPS[type];
+      if (group) {
+        const recipient = await User.findById(userId).select("settings.notifications").lean();
+        if (recipient && !settingsOf(recipient).notifications[group]) return null;
+      }
 
       if (dedupeMs > 0 && fromUserId) {
         const recent = await Notification.exists({
@@ -124,11 +133,13 @@ class NotificationService {
     );
   }
 
-  async sendFollowNotification(followedUserId, followerUserId, followerUsername) {
+  async sendFollowNotification(followedUserId, followerUserId, followerUsername, { followBack = false } = {}) {
     await this.createNotification(
       followedUserId,
       "FOLLOW",
-      `${followerUsername} started following you`,
+      followBack
+        ? `${followerUsername} followed you back — you're now friends and can message each other`
+        : `${followerUsername} started following you`,
       `/profile/${followerUsername}`,
       followerUserId,
       { dedupeMs: ONE_DAY }, // follow → unfollow → follow again doesn't re-alert

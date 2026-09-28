@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Package,
   Star,
+  Store as StoreIcon,
   UserCheck,
   UserPlus,
   Warehouse,
@@ -27,14 +28,19 @@ import { cn } from "../../../lib/cn";
 import { mediaUrl } from "../../../lib/config";
 import { toast } from "../../../lib/toast";
 import { useSocketEvent } from "../../../lib/useSocketEvent";
+import { mergeStore, useLiveProductList } from "../liveCatalog";
 
 const formatPrice = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
-function StoreDetail({ store, onBack }) {
-  const { getStoreProducts, getFollowStatus, followStore } = useStore();
+function StoreDetail({ store: initialStore, onBack }) {
+  const { getStoreById, getStoreProducts, getFollowStatus, followStore } = useStore();
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const topRef = useRef(null);
+  const requestRef = useRef(0);
+  // The storefront as opened from the list, kept live (`store:updated`, reconnects)
+  const [store, setStore] = useState(initialStore);
+  const [removed, setRemoved] = useState(false);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,6 +77,43 @@ function StoreDetail({ store, onBack }) {
     if (isMe(e.followerId)) setFollowing(Boolean(e.followed));
   });
 
+  // After a reconnect: the storefront, follower total and products may all have changed
+  const refreshStore = async () => {
+    const fresh = await getStoreById(store._id);
+    if (fresh) {
+      setStore((prev) => ({ ...prev, ...fresh }));
+      if (Array.isArray(fresh.owner?.followers)) setFollowersCount(fresh.owner.followers.length);
+    }
+    fetchProducts({ silent: true });
+  };
+
+  // Realtime: the storefront itself (name, logo, description) and its removal
+  useSocketEvent(
+    "store:updated",
+    (e = {}) => {
+      if (e.store && String(e.storeId) === String(store._id)) setStore((prev) => mergeStore(prev, e.store));
+    },
+    { onReconnect: () => !removed && refreshStore() },
+  );
+
+  useSocketEvent("store:deleted", (e = {}) => {
+    if (String(e.storeId) === String(store._id)) setRemoved(true);
+  });
+
+  // Products: live price / stock / ratings and removals; a new one reloads the page in the
+  // background (where it lands depends on the sort and paging)
+  useLiveProductList(products, setProducts, { onRemoved: (n) => setTotalProducts((t) => Math.max(0, t - n)) });
+
+  useSocketEvent("product:created", (e = {}) => {
+    if (String(e.storeId) === String(store._id)) fetchProducts({ silent: true });
+  });
+
+  // Opened another store from the list
+  useEffect(() => {
+    setStore(initialStore);
+    setRemoved(false);
+  }, [initialStore]);
+
   // The app shell scrolls <main>, not the window — bring the header into view.
   useEffect(() => {
     topRef.current?.scrollIntoView({ block: "start" });
@@ -94,9 +137,13 @@ function StoreDetail({ store, onBack }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store._id, isAuthenticated, isOwner]);
 
-  const fetchProducts = async () => {
-    setLoading(true);
-    setError(null);
+  // `silent`: refresh in the background (no skeleton; a failure keeps what's shown)
+  const fetchProducts = async ({ silent = false } = {}) => {
+    const id = ++requestRef.current; // only the latest request may update the list
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const result = await getStoreProducts(store._id, {
         page: currentPage,
@@ -104,21 +151,25 @@ function StoreDetail({ store, onBack }) {
         sort: sortBy,
         order: sortOrder,
       });
+      if (id !== requestRef.current) return;
 
       if (result?.success) {
         setProducts(result.data.products || []);
         setTotalPages(result.data.totalPages || 1);
         setTotalProducts(result.data.total ?? (result.data.products || []).length);
-      } else {
+        setError(null);
+      } else if (!silent) {
         setError(result?.message || "Failed to fetch products");
         setProducts([]);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
-      setError("Failed to fetch products");
-      setProducts([]);
+      if (!silent && id === requestRef.current) {
+        setError("Failed to fetch products");
+        setProducts([]);
+      }
     } finally {
-      setLoading(false);
+      if (id === requestRef.current) setLoading(false);
     }
   };
 
@@ -160,6 +211,30 @@ function StoreDetail({ store, onBack }) {
   };
 
   const since = store.createdAt ? new Date(store.createdAt) : null;
+
+  if (removed) {
+    return (
+      <Page wide>
+        <div ref={topRef} className="scroll-mt-8">
+          <Button variant="ghost" size="sm" icon={ArrowLeft} onClick={onBack}>
+            All stores
+          </Button>
+        </div>
+        <Card corners>
+          <EmptyState
+            icon={StoreIcon}
+            title="Store closed"
+            description={`${store.name} was deleted by its owner, along with its products.`}
+            action={
+              <Button variant="outline" size="sm" icon={ArrowLeft} onClick={onBack}>
+                Back to all stores
+              </Button>
+            }
+          />
+        </Card>
+      </Page>
+    );
+  }
 
   return (
     <Page wide>

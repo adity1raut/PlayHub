@@ -1,12 +1,25 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { CalendarDays, Camera, Loader2, Mail, MessagesSquare, Pencil, UserCheck, UserPlus } from "lucide-react";
+import {
+  CalendarDays,
+  Camera,
+  Handshake,
+  Loader2,
+  Lock,
+  Mail,
+  MessagesSquare,
+  Pencil,
+  Settings,
+  UserCheck,
+  UserPlus,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { API_URL as backendUrl, mediaUrl } from "../../lib/config";
 import { cn } from "../../lib/cn";
 import { toast } from "../../lib/toast";
 import { Avatar, Badge, Button, Card } from "../../components/ui";
+import { friendsCountOf } from "./friends";
 
 // PUT /api/auth/profile takes JSON with base64 data URIs; express.json() caps bodies at 10mb.
 const MAX_IMAGE_MB = 4;
@@ -93,6 +106,9 @@ const ProfileHeader = ({
     typeof profileData.followingCount === "number" ? profileData.followingCount : followingArr.length;
 
   const followsYou = !isOwnProfile && followingArr.some((f) => idOf(f) === String(currentUserId));
+  // Friends = follow each other. Only friends can chat, unless both players allow messages from everyone.
+  const isFriend = isFollowing && followsYou;
+  const canMessage = isFriend || Boolean(profileData.chat?.open);
 
   // POST /api/auth/profile/:username/follow → { success, followed, followersCount }
   const handleFollow = async () => {
@@ -118,7 +134,13 @@ const ProfileHeader = ({
         });
 
         // The follow route creates the FOLLOW notification on the server
-        toast.success(followed ? `Following @${profileData.username}` : `Unfollowed @${profileData.username}`);
+        toast.success(
+          followed
+            ? followsYou
+              ? `You and @${profileData.username} are now friends — you can message each other`
+              : `Following @${profileData.username}`
+            : `Unfollowed @${profileData.username}`,
+        );
         // Keep the auth user's `following` list fresh for the rest of the app
         refreshUser?.();
       }
@@ -136,6 +158,7 @@ const ProfileHeader = ({
 
   const stats = [
     { key: "posts", label: "Posts", value: profileData.posts?.length || 0 },
+    { key: "friends", label: "Friends", value: friendsCountOf(profileData) },
     { key: "followers", label: "Followers", value: followersCount },
     { key: "following", label: "Following", value: followingCount },
   ];
@@ -156,6 +179,10 @@ const ProfileHeader = ({
         </span>
         {isOwnProfile ? (
           <Badge>You</Badge>
+        ) : isFriend ? (
+          <Badge variant="success" icon={Handshake}>
+            Friends
+          </Badge>
         ) : (
           followsYou && <Badge variant="secondary">Follows you</Badge>
         )}
@@ -215,11 +242,16 @@ const ProfileHeader = ({
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2 pb-1">
+          <div className="flex flex-wrap items-center gap-2 pb-1">
             {isOwnProfile ? (
-              <Button variant="outline" icon={Pencil} onClick={() => setIsEditing(true)}>
-                Edit profile
-              </Button>
+              <>
+                <Button variant="outline" icon={Pencil} onClick={() => setIsEditing(true)}>
+                  Edit profile
+                </Button>
+                <Button as={Link} to="/settings" variant="ghost" icon={Settings}>
+                  Settings
+                </Button>
+              </>
             ) : (
               <>
                 <Button
@@ -230,11 +262,18 @@ const ProfileHeader = ({
                   aria-pressed={isFollowing}
                   title={isFollowing ? "Unfollow" : "Follow"}
                 >
-                  {isFollowing ? "Following" : "Follow"}
+                  {isFollowing ? "Following" : followsYou ? "Follow back" : "Follow"}
                 </Button>
-                <Button icon={MessagesSquare} onClick={openChat}>
-                  Message
-                </Button>
+                {canMessage ? (
+                  <Button icon={MessagesSquare} onClick={openChat}>
+                    Message
+                  </Button>
+                ) : (
+                  <p className="flex items-center gap-1.5 text-[11px] text-faint">
+                    <Lock className="size-3.5" aria-hidden="true" />
+                    {followsYou ? "Follow back to chat" : isFollowing ? "Chat unlocks when they follow back" : "Follow each other to chat"}
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -270,14 +309,15 @@ const ProfileHeader = ({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 border-t border-border">
+      {/* 2×2 on phones, one row from sm. The card clips overflow, so -mr/-mb hide the outer cell borders. */}
+      <div className="-mr-px -mb-px grid grid-cols-2 border-t border-border sm:grid-cols-4">
         {stats.map(({ key, label, value }, i) => (
           <button
             key={key}
             type="button"
             onClick={() => onStatClick?.(key)}
             aria-label={`${value} ${label} — show ${label.toLowerCase()}`}
-            className="flex min-w-0 flex-col items-start border-r border-border px-4 py-3.5 text-left transition-colors last:border-r-0 hover:bg-accent sm:px-6"
+            className="flex min-w-0 flex-col items-start border-r border-b border-border px-4 py-3.5 text-left transition-colors hover:bg-accent sm:px-6"
           >
             <span className="text-[10px] text-faint tabular-nums">{String(i + 1).padStart(2, "0")}</span>
             <span className="mt-1 text-xl font-extrabold tabular-nums">{value}</span>

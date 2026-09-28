@@ -7,6 +7,8 @@ import Order from "./order.model.js";
 import Store from "./store.model.js";
 import { getNotificationService } from "../../socket/socket.handlers.js";
 import { toUser } from "../../socket/realtime.js";
+import { announceProductUpdate } from "./product.controller.js";
+import { publishCart } from "./cart.controller.js";
 
 export async function getUserAddresses(req, res) {
   try {
@@ -237,7 +239,9 @@ export async function verifyPayment(req, res) {
       });
     }
 
-    await Promise.all(stockUpdatePromises);
+    const updatedProducts = await Promise.all(stockUpdatePromises);
+    // Live stock on every open product page, list and cart
+    updatedProducts.forEach((p) => p && announceProductUpdate(p, ["stock"]));
 
     const newOrder = new Order({
       user: req.user._id,
@@ -268,6 +272,7 @@ export async function verifyPayment(req, res) {
     const savedOrder = await newOrder.save();
     cart.items = [];
     await cart.save();
+    publishCart(req.user._id, cart); // the buyer's other tabs empty their cart too
 
     notifyOrderPlaced(savedOrder, user).catch((error) =>
       console.error("Order notifications failed:", error.message),

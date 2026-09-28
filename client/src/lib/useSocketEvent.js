@@ -8,10 +8,13 @@ import { useSocket } from "../context/SocketContext";
  *
  *   useSocketEvent("post:likes", ({ postId, likesCount }) => …);
  *
- * Pass `onReconnect` to refetch data that may have changed while offline.
+ * Pass `onReconnect` to refetch data that may have changed while offline. It runs after
+ * every reconnect (not the first connect) — socket.io's own retries and SocketContext's
+ * retry after a refused handshake alike — once the socket is connected again, so nothing
+ * pushed after the refetch is missed.
  */
 export function useSocketEvent(event, handler, { onReconnect } = {}) {
-  const { socket } = useSocket();
+  const { socket, reconnects } = useSocket();
   const handlerRef = useRef(handler);
   const reconnectRef = useRef(onReconnect);
   handlerRef.current = handler;
@@ -20,14 +23,17 @@ export function useSocketEvent(event, handler, { onReconnect } = {}) {
   useEffect(() => {
     if (!socket || !event) return undefined;
     const listener = (payload) => handlerRef.current?.(payload);
-    const onConnect = () => reconnectRef.current?.();
     socket.on(event, listener);
-    socket.io.on("reconnect", onConnect);
-    return () => {
-      socket.off(event, listener);
-      socket.io.off("reconnect", onConnect);
-    };
+    return () => socket.off(event, listener);
   }, [socket, event]);
+
+  // `reconnects` only ever counts up; a change after mount means we were offline
+  const seenReconnects = useRef(reconnects);
+  useEffect(() => {
+    if (reconnects === seenReconnects.current) return;
+    seenReconnects.current = reconnects;
+    reconnectRef.current?.();
+  }, [reconnects]);
 }
 
 export default useSocketEvent;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -68,6 +68,13 @@ export default function Cart() {
 
   const [updating, setUpdating] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+
+  // Load the current cart when the page opens (then `cart:updated` keeps it live). Context
+  // functions aren't memoised, so only depend on auth.
+  useEffect(() => {
+    if (isAuthenticated) fetchCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   const handleRefreshCart = async () => {
     setRefreshing(true);

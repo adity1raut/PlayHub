@@ -3,7 +3,25 @@ import Product from "./product.model.js";
 import Store from "./store.model.js";
 import User from "../auth/user.model.js";
 import { getNotificationService } from "../../socket/socket.handlers.js";
+import { broadcast } from "../../socket/realtime.js";
 import { Readable } from "stream";
+
+const EDITABLE_FIELDS = ["name", "description", "price", "stock", "images"];
+
+/**
+ * Broadcast `product:updated` so every open product page, list, cart and wishlist patches in
+ * place: `product` holds only the public fields that may have changed (merge it into what you
+ * have). Owner edits send every editable field; purchases send just the new stock.
+ */
+export function announceProductUpdate(product, fields = EDITABLE_FIELDS) {
+  const changes = { _id: product._id, updatedAt: product.updatedAt };
+  for (const field of fields) changes[field] = product[field];
+  broadcast("product:updated", {
+    productId: String(product._id),
+    storeId: String(product.store?._id ?? product.store),
+    product: changes,
+  });
+}
 
 const uploadToCloudinary = (buffer, options) => {
   return new Promise((resolve, reject) => {
@@ -49,6 +67,11 @@ export async function addProduct(req, res) {
       "store",
       "name logo",
     );
+    broadcast("product:created", {
+      productId: String(product._id),
+      storeId: String(req.store._id),
+      product: populatedProduct,
+    });
     res.status(201).json(populatedProduct);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -102,6 +125,7 @@ export async function updateProduct(req, res) {
       { new: true },
     ).populate("store", "name logo");
 
+    announceProductUpdate(updatedProduct);
     res.status(200).json(updatedProduct);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -132,6 +156,7 @@ export async function deleteProduct(req, res) {
     );
     await req.store.save();
     await Product.findByIdAndDelete(productId);
+    broadcast("product:deleted", { productId: String(productId), storeId: String(req.store._id) });
 
     res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
@@ -196,6 +221,18 @@ export async function addProductRating(req, res) {
       "ratings.user",
       "username profile.name",
     );
+
+    // Live reviews + average on the product page, cards and the owner's analytics
+    const ratings = populatedProduct.ratings;
+    const ratingsCount = ratings.length;
+    broadcast("product:rating", {
+      productId: String(productId),
+      storeId: String(product.store),
+      averageRating: ratingsCount ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratingsCount : 0,
+      ratingsCount,
+      review: ratings.find((r) => String(r.user?._id ?? r.user) === String(req.user._id)) ?? null,
+    });
+
     res.status(200).json(populatedProduct);
   } catch (error) {
     res.status(500).json({ error: error.message });

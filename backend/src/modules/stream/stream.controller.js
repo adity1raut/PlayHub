@@ -2,8 +2,9 @@ import Stream from "./stream.model.js";
 import User from "../auth/user.model.js";
 import LiveMessage from "./streamChat.model.js";
 import { getNotificationService } from "../../socket/socket.handlers.js";
-import { closeRoom } from "../../sfu/index.js";
+import { closeRoom, liveViewerCount } from "../../sfu/index.js";
 import { broadcast } from "../../socket/realtime.js";
+import { forgetStreamChat, postStreamChat, queueStreamStats } from "./stream.socket.js";
 
 export async function createStream(req, res) {
   try {
@@ -59,6 +60,7 @@ export async function getAllLiveStreams(req, res) {
 export async function getStreamById(req, res) {
   try {
     const stream = await Stream.findById(req.params.id)
+      .select("-streamKey")
       .populate("host", "username profile.profileImage profile.name")
       .populate("viewers", "username profile.profileImage profile.name")
       .populate({
@@ -71,7 +73,15 @@ export async function getStreamById(req, res) {
       });
 
     if (!stream) return res.status(404).json({ message: "Stream not found" });
-    res.json(stream);
+
+    // liveChat above holds only the newest 50; the counters are for the whole stream
+    const now = new Date();
+    res.json({
+      ...stream.toJSON(),
+      messagesCount: await LiveMessage.countDocuments({ streamId: stream._id }),
+      liveViewers: liveViewerCount(stream._id),
+      chatMutes: (stream.chatMutes || []).filter((m) => m.until > now),
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -97,6 +107,8 @@ export async function endStream(req, res) {
 
     // Stop forwarding video/audio to viewers, and drop it from every live list
     closeRoom(stream._id);
+    forgetStreamChat(stream._id);
+    queueStreamStats(stream._id);
     broadcast("stream:ended", { streamId: String(stream._id), endedAt: stream.endedAt });
 
     const notificationService = getNotificationService();
@@ -130,13 +142,12 @@ export async function joinStream(req, res) {
       return res.status(400).json({ message: "Stream is not live" });
     }
 
-    if (!stream.viewers.includes(userId)) {
-      stream.viewers.push(userId);
-      await stream.save();
-
+    // Live viewers are tracked by the SFU room; this keeps the "who watched" list for older clients
+    if (String(stream.host._id) !== String(userId)) {
+      await Stream.updateOne({ _id: streamId }, { $addToSet: { viewers: userId } });
     }
 
-    res.json({ message: "Joined stream", viewers: stream.viewers.length });
+    res.json({ message: "Joined stream", viewers: liveViewerCount(streamId) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -144,16 +155,11 @@ export async function joinStream(req, res) {
 
 export async function leaveStream(req, res) {
   try {
-    const userId = req.user._id;
-    const stream = await Stream.findById(req.params.id);
+    const stream = await Stream.exists({ _id: req.params.id });
     if (!stream) return res.status(404).json({ message: "Stream not found" });
 
-    stream.viewers = stream.viewers.filter(
-      (v) => v.toString() !== userId.toString(),
-    );
-    await stream.save();
-
-    res.json({ message: "Left stream", viewers: stream.viewers.length });
+    // `viewers` is everyone who watched (analytics), so leaving doesn't remove anyone
+    res.json({ message: "Left stream", viewers: liveViewerCount(req.params.id) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -161,40 +167,12 @@ export async function leaveStream(req, res) {
 
 export async function sendChatMessage(req, res) {
   try {
-    const { message } = req.body;
-    const streamId = req.params.id;
-    const userId = req.user._id;
-
-    const stream = await Stream.findById(streamId);
-    if (!stream) return res.status(404).json({ message: "Stream not found" });
-    if (!stream.isLive) {
-      return res.status(400).json({ message: "Stream is not live" });
-    }
-
-    const newMessage = new LiveMessage({ streamId, sender: userId, message });
-    await newMessage.save();
-
-    stream.liveChat.push(newMessage._id);
-    await stream.save();
-
-    await newMessage.populate(
-      "sender",
-      "username profile.profileImage profile.name",
-    );
-
-    const notificationService = getNotificationService();
-    if (notificationService && notificationService.io) {
-      notificationService.io
-        .to(`stream_${streamId}`)
-        .emit("new-stream-message", {
-          streamId,
-          message: newMessage,
-          timestamp: new Date(),
-        });
-    }
-
-    res.status(201).json(newMessage);
+    const message = await postStreamChat(req.user._id, req.params.id, req.body?.message);
+    res.status(201).json(message);
   } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message, code: err.code, until: err.until });
+    }
     res.status(500).json({ error: err.message });
   }
 }
@@ -227,7 +205,10 @@ export async function getStreamAnalytics(req, res) {
     }
 
     const analytics = {
-      totalViewers: stream.viewers.length,
+      totalViewers: stream.viewers.length, // unique viewers over the whole stream
+      liveViewers: liveViewerCount(stream._id),
+      peakViewers: stream.peakViewers || 0,
+      totalReactions: stream.reactionsCount || 0,
       totalMessages: stream.liveChat.length,
       duration: stream.endedAt
         ? Math.floor(

@@ -35,7 +35,6 @@ import {
 } from "../../components/ui";
 import { API_URL as backendUrl, mediaUrl } from "../../lib/config";
 import { useSocketEvent } from "../../lib/useSocketEvent";
-import DeviceAlertsBanner from "../notifications/DeviceAlertsBanner";
 
 const POSTS_PER_PAGE = 6;
 // Socket events keep "Live now" current; this slow refetch is only a safety net.
@@ -229,7 +228,15 @@ function Home() {
   const userPostIds = useMemo(() => new Set((user?.posts || []).map(idOf)), [user?.posts]);
 
   useSocketEvent("post:created", ({ post } = {}) => {
-    if (!post?._id || !userId || !sameId(idOf(post.author), userId)) return;
+    if (!post?._id) return;
+    // Newest on top, capped at the pages loaded so far: the post pushed off the end moves to the
+    // next page, so "Load more" stays aligned with the server's pages
+    if (!posts.some((p) => sameId(p._id, post._id))) {
+      const cap = page * POSTS_PER_PAGE;
+      setPosts((prev) => (prev.some((p) => sameId(p._id, post._id)) ? prev : [post, ...prev].slice(0, cap)));
+      if (posts.length >= cap) setHasMore(true);
+    }
+    if (!userId || !sameId(idOf(post.author), userId)) return;
     setMyPostIds((prev) => new Set(prev ?? userPostIds).add(String(post._id)));
   });
 
@@ -278,7 +285,6 @@ function Home() {
         }
       />
 
-      <DeviceAlertsBanner />
 
       <section aria-label="Stats" className="grid grid-cols-2 border-t border-l border-border lg:grid-cols-4">
         <StatTile

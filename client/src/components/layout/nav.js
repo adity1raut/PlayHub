@@ -7,6 +7,7 @@ import {
   Package,
   Radio,
   Search,
+  Settings,
   ShoppingCart,
   Store,
   UserRound,
@@ -31,6 +32,7 @@ export const NAV_GROUPS = [
         showUnread: true,
       },
       { id: "profile", label: "Profile", short: "Me", icon: UserRound, path: "/profile/me" },
+      { id: "settings", label: "Settings", icon: Settings, path: "/settings" },
     ],
   },
   {

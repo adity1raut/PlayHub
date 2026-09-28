@@ -2,12 +2,14 @@ import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "./AuthContext";
 import { API_URL as backendUrl } from "../lib/config";
+import { useSocketEvent } from "../lib/useSocketEvent";
+import { idOf, mergeStore } from "../features/store/liveCatalog";
 
 const StoreContext = createContext();
 
 
 export function StoreProvider({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [stores, setStores] = useState([]);
   const [userStore, setUserStore] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -24,8 +26,9 @@ export function StoreProvider({ children }) {
     }
   }, [isAuthenticated]);
 
-  const getAllStores = async (params = {}) => {
-    setLoading(true);
+  // `silent`: refresh in the background (no loading skeleton), e.g. after a reconnect
+  const getAllStores = async (params = {}, { silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const res = await axios.get(`${backendUrl}/api/stores`, { params });
       setStores(res.data.stores || []);
@@ -290,6 +293,54 @@ export function StoreProvider({ children }) {
 
   // Error Management
   const clearError = () => setError(null);
+
+  // ── Realtime: storefronts and their product counts (store lists, filters, MyStore) ──
+  const patchStore = (storeId, fn) => {
+    const id = String(storeId);
+    setStores((prev) => (prev.some((s) => idOf(s) === id) ? prev.map((s) => (idOf(s) === id ? fn(s) : s)) : prev));
+    setUserStore((prev) => (prev && idOf(prev) === id ? fn(prev) : prev));
+  };
+
+  // Opened from another of our tabs → MyStore picks it up
+  useSocketEvent(
+    "store:created",
+    ({ store } = {}) => {
+      if (store && user?._id && idOf(store.owner) === String(user._id)) {
+        setUserStore((prev) => prev ?? { ...store, products: [] });
+      }
+    },
+    { onReconnect: () => isAuthenticated && getCurrentUserStore() },
+  );
+
+  useSocketEvent("store:updated", ({ storeId, store } = {}) => {
+    if (store) patchStore(storeId, (s) => mergeStore(s, store));
+  });
+
+  useSocketEvent("store:deleted", ({ storeId } = {}) => {
+    const id = String(storeId);
+    setStores((prev) => (prev.some((s) => idOf(s) === id) ? prev.filter((s) => idOf(s) !== id) : prev));
+    setUserStore((prev) => (prev && idOf(prev) === id ? null : prev));
+    setFollowedStores((prev) => prev.filter((s) => String(s) !== id));
+  });
+
+  // Store cards show how many products a store has
+  useSocketEvent("product:created", ({ storeId, productId, product } = {}) => {
+    if (!product) return;
+    const { _id, name, price, images, stock } = product;
+    patchStore(storeId, (s) =>
+      (s.products || []).some((p) => idOf(p) === String(productId))
+        ? s
+        : { ...s, products: [...(s.products || []), { _id, name, price, images, stock }] },
+    );
+  });
+
+  useSocketEvent("product:deleted", ({ storeId, productId } = {}) => {
+    patchStore(storeId, (s) =>
+      (s.products || []).some((p) => idOf(p) === String(productId))
+        ? { ...s, products: s.products.filter((p) => idOf(p) !== String(productId)) }
+        : s,
+    );
+  });
 
   return (
     <StoreContext.Provider

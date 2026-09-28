@@ -15,7 +15,7 @@
   ],
   "author": "Aditya",
   "license": "ISC",
-  "description": "",
+  "description": "Spawnpoint API: auth, posts, chat, live-streaming SFU, notifications and store/checkout.",
   "dependencies": {
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",

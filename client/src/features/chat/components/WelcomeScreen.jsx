@@ -7,7 +7,7 @@ const WelcomeScreen = ({ onNewChat }) => {
       <EmptyState
         icon={MessagesSquare}
         title="Select a conversation"
-        description="Pick a thread from the list, or search a player by @username to start a new one. Messages arrive in real time."
+        description="Pick a thread, or start one with a friend — players who follow each other. Messages, photos, videos and files arrive in real time."
         action={
           onNewChat && (
             <Button icon={SquarePen} onClick={onNewChat}>

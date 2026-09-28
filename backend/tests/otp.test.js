@@ -83,3 +83,25 @@ test("a sign-up code can't be used for a password reset", async () => {
   await issueOtp("h@test.dev", "register");
   await rejects(verifyOtp("h@test.dev", "reset", lastCode), /expired or was never sent/);
 });
+
+test("the code email names Spawnpoint and links the creator's LinkedIn, GitHub and portfolio", async () => {
+  const fs = await import("node:fs");
+  const { renderOtpEmail } = await import("../src/modules/auth/otpEmail.js");
+  const links = {
+    LinkedIn: "https://www.linkedin.com/in/aditya1-raut",
+    GitHub: "https://github.com/adity1raut",
+    Portfolio: "https://www.adityaraut.me/",
+  };
+  for (const purpose of ["register", "reset"]) {
+    const mail = renderOtpEmail({ code: "123456", purpose, name: "<b>Ada</b>", ttlMinutes: 10 });
+    assert.match(mail.subject, /^Your Spawnpoint /);
+    assert.match(mail.text, /Spawnpoint (sign-up|password reset) screen/);
+    for (const [label, url] of Object.entries(links)) {
+      assert.ok(mail.html.includes(`href="${url}"`), `${purpose}: ${label} link in the HTML`);
+      assert.ok(mail.html.includes(`>${label}</span>`), `${purpose}: ${label} button label`);
+      assert.ok(mail.text.includes(`${label}: ${url}`), `${purpose}: ${label} in the plain-text version`);
+    }
+    assert.ok(!mail.html.includes("<b>Ada</b>"), "names are escaped");
+    for (const a of mail.attachments) assert.ok(fs.existsSync(a.path), `${a.filename} is bundled`);
+  }
+});

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { ChevronRight, Grid3x3, Heart, MessageSquare, Play, RefreshCw, UserPlus, Users } from "lucide-react";
+import { ChevronRight, Grid3x3, Handshake, Heart, MessageSquare, Play, RefreshCw, UserPlus, Users } from "lucide-react";
 import { API_URL as backendUrl, mediaUrl } from "../../lib/config";
 import { useSocketEvent } from "../../lib/useSocketEvent";
 import { Alert, Avatar, Button, Card, EmptyState, LoadingBlock, Modal, Tabs } from "../../components/ui";
 import PostCard from "../posts/PostCard";
+import { friendsCountOf } from "./friends";
 
 const sameId = (a, b) => a != null && b != null && String(a) === String(b);
 
@@ -122,10 +123,15 @@ function UserPostsList({ username, isOwnProfile, onPostDeleted }) {
     );
 
   // Realtime: new posts by this user, deletions, and live like / comment counts
-  useSocketEvent("post:created", ({ post } = {}) => {
-    if (!post?._id || post.author?.username !== username) return;
-    setPosts((prev) => (prev.some((p) => sameId(p._id, post._id)) ? prev : [post, ...prev]));
-  });
+  // (plus a background reload after a reconnect)
+  useSocketEvent(
+    "post:created",
+    ({ post } = {}) => {
+      if (!post?._id || post.author?.username !== username) return;
+      setPosts((prev) => (prev.some((p) => sameId(p._id, post._id)) ? prev : [post, ...prev]));
+    },
+    { onReconnect: retry },
+  );
 
   useSocketEvent("post:deleted", ({ postId } = {}) => {
     if (!postId) return;
@@ -240,28 +246,44 @@ function UserPostsList({ username, isOwnProfile, onPostDeleted }) {
   );
 }
 
-// GET /api/auth/profile/:username/(followers|following) → { success, data: users }
+const LIST_EMPTY = {
+  friends: {
+    icon: Handshake,
+    title: "No friends yet",
+    description: (username) => `Friends are players who follow each other. @${username} has none yet.`,
+  },
+  followers: { icon: Users, title: "No followers yet", description: (username) => `Nobody follows @${username} yet.` },
+  following: {
+    icon: UserPlus,
+    title: "Not following anyone yet",
+    description: (username) => `@${username} isn't following anyone yet.`,
+  },
+};
+
+// GET /api/auth/profile/:username/(friends|followers|following) → { success, data: users }
 function UserList({ username, kind, refreshKey }) {
-  const { items: users, loading, error, retry } = useProfileList(
+  const { items: users, setItems: setUsers, loading, error, retry } = useProfileList(
     `/api/auth/profile/${encodeURIComponent(username)}/${kind}`,
     [refreshKey],
   );
-  const noun = kind === "followers" ? "followers" : "following";
+  const noun = kind;
+  const empty = LIST_EMPTY[kind];
+
+  // Listed players' live name / avatar / bio edits (and a background reload after a reconnect)
+  useSocketEvent(
+    "user:updated",
+    ({ userId, profile } = {}) => {
+      if (profile) setUsers((prev) => patchById(prev, userId, (u) => ({ ...u, profile: { ...u.profile, ...profile } })));
+    },
+    { onReconnect: retry },
+  );
 
   if (loading) return <LoadingBlock label={`Loading ${noun}`} />;
   if (error) return <ListError title={`Couldn't load ${noun}`} error={error} onRetry={retry} />;
   if (!users.length)
     return (
       <Card>
-        <EmptyState
-          icon={kind === "followers" ? Users : UserPlus}
-          title={kind === "followers" ? "No followers yet" : "Not following anyone yet"}
-          description={
-            kind === "followers"
-              ? `Nobody follows @${username} yet.`
-              : `@${username} isn't following anyone yet.`
-          }
-        />
+        <EmptyState icon={empty.icon} title={empty.title} description={empty.description(username)} />
       </Card>
     );
 
@@ -317,8 +339,11 @@ const ProfileTabs = ({ profileData, activeTab, setActiveTab, isOwnProfile, onPos
         ? profileData.following.length
         : 0;
 
+  const friendsCount = friendsCountOf(profileData);
+
   const options = [
     { value: "posts", label: "Posts", icon: Grid3x3, count: profileData.posts?.length || 0 },
+    { value: "friends", label: "Friends", icon: Handshake, count: friendsCount },
     { value: "followers", label: "Followers", icon: Users, count: followersCount },
     { value: "following", label: "Following", icon: UserPlus, count: followingCount },
   ];
@@ -334,6 +359,9 @@ const ProfileTabs = ({ profileData, activeTab, setActiveTab, isOwnProfile, onPos
             isOwnProfile={isOwnProfile}
             onPostDeleted={onPostDeleted}
           />
+        )}
+        {activeTab === "friends" && (
+          <UserList username={profileData.username} kind="friends" refreshKey={friendsCount} />
         )}
         {activeTab === "followers" && (
           <UserList username={profileData.username} kind="followers" refreshKey={followersCount} />

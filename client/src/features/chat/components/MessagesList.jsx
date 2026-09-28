@@ -67,6 +67,19 @@ const MessagesList = ({
     if (isUserTyping && followRef.current) scrollToBottom();
   }, [isUserTyping]);
 
+  // Photos / videos grow the thread after they load: stay pinned to the bottom while following
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    const onMediaLoad = () => followRef.current && el.scrollTo({ top: el.scrollHeight });
+    el.addEventListener("load", onMediaLoad, true);
+    el.addEventListener("loadedmetadata", onMediaLoad, true);
+    return () => {
+      el.removeEventListener("load", onMediaLoad, true);
+      el.removeEventListener("loadedmetadata", onMediaLoad, true);
+    };
+  }, []);
+
   const handleScroll = () => {
     const el = scrollRef.current;
     if (!el) return;

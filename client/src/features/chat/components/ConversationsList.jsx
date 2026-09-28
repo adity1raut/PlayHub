@@ -1,7 +1,21 @@
-import { MessagesSquare, RefreshCw, SquarePen } from "lucide-react";
+import { Lock, MessagesSquare, RefreshCw, SquarePen } from "lucide-react";
 import { Alert, Avatar, Button, EmptyState, Skeleton } from "../../../components/ui";
 import { cn } from "../../../lib/cn";
-import { hasReadBy, idOf } from "../hooks/useChat";
+import { canMessageIn, hasReadBy, idOf } from "../hooks/useChat";
+import { attachmentSummary } from "../attachments";
+
+/** Last-message preview: the text, or an icon + "Photo" / "Video" / file name for attachments. */
+const LastMessagePreview = ({ message }) => {
+  const summary = attachmentSummary(message);
+  if (!summary) return message.content;
+  const Icon = summary.icon;
+  return (
+    <>
+      <Icon className="mr-1 inline size-3 align-[-2px]" aria-hidden="true" />
+      {message.content || summary.label}
+    </>
+  );
+};
 
 const ConversationsList = ({
   conversations,
@@ -57,7 +71,7 @@ const ConversationsList = ({
       <EmptyState
         icon={MessagesSquare}
         title="No conversations yet"
-        description="Search a player by @username to start your first chat."
+        description="Friends — players who follow each other — can chat. Pick a friend to start your first conversation."
         action={
           onNewChat && (
             <Button size="sm" icon={SquarePen} onClick={onNewChat}>
@@ -95,8 +109,19 @@ const ConversationsList = ({
               <Avatar src={otherUser?.profile?.profileImage} name={name} size="md" />
               <span className="min-w-0 flex-1">
                 <span className="flex items-baseline justify-between gap-2">
-                  <span className={cn("truncate text-xs text-foreground", unread ? "font-extrabold" : "font-bold")}>
-                    {name}
+                  <span
+                    className={cn(
+                      "flex min-w-0 items-center gap-1.5 text-xs text-foreground",
+                      unread ? "font-extrabold" : "font-bold",
+                    )}
+                  >
+                    <span className="truncate">{name}</span>
+                    {!canMessageIn(conversation) && (
+                      <span title="Read-only: you're not friends" className="shrink-0 text-faint">
+                        <Lock className="size-3" aria-hidden="true" />
+                        <span className="sr-only">(read-only, not friends)</span>
+                      </span>
+                    )}
                   </span>
                   {last?.createdAt && (
                     <time dateTime={last.createdAt} className="shrink-0 text-[11px] text-faint tabular-nums">
@@ -110,7 +135,7 @@ const ConversationsList = ({
                   ) : last ? (
                     <span className={cn("truncate text-[11px]", unread ? "text-foreground" : "text-muted-foreground")}>
                       {mine && <span className="text-faint">You: </span>}
-                      {last.content}
+                      <LastMessagePreview message={last} />
                     </span>
                   ) : (
                     <span className="truncate text-[11px] text-faint">

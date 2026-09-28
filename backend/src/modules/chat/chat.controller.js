@@ -1,7 +1,48 @@
+import mongoose from "mongoose";
 import Conversation from "./conversation.model.js";
 import Message from "./message.model.js";
 import User from "../auth/user.model.js";
+import { chatAccess, friendIdsOf, NOT_FRIENDS_MESSAGE } from "../auth/friends.js";
 import { getNotificationService } from "../../socket/socket.handlers.js";
+import { authorizeSend, sendChatMessage } from "./chat.service.js";
+import { storeAttachment } from "./attachments.js";
+
+const PLAYER_FIELDS = "username profile.name profile.profileImage profile.bio";
+
+const playerCard = (user, access) => ({
+  _id: user._id,
+  username: user.username,
+  profile: {
+    name: user.profile?.name || null,
+    profileImage: user.profile?.profileImage,
+    bio: user.profile?.bio,
+  },
+  isFriend: Boolean(access?.isFriend),
+  canMessage: Boolean(access?.canMessage),
+});
+
+const otherMemberId = (conversation, me) =>
+  conversation.members.map((m) => String(m?._id ?? m)).find((id) => id !== String(me));
+
+/** Attach { isFriend, canMessage } for the other member to each conversation (JSON-ready). */
+async function withAccess(conversations, me) {
+  const access = await chatAccess(
+    me,
+    conversations.map((c) => otherMemberId(c, me)).filter(Boolean),
+  );
+  return conversations.map((c) => {
+    const a = access.get(otherMemberId(c, me));
+    return { ...c.toJSON(), isFriend: Boolean(a?.isFriend), canMessage: Boolean(a?.canMessage) };
+  });
+}
+
+function sendError(res, error, fallback) {
+  if (error.status) {
+    return res.status(error.status).json({ success: false, message: error.message, code: error.code });
+  }
+  console.error(`${fallback}:`, error);
+  return res.status(500).json({ success: false, message: "Server error" });
+}
 
 export async function searchUsers(req, res) {
   try {
@@ -21,26 +62,36 @@ export async function searchUsers(req, res) {
       _id: { $ne: req.user.id },
     };
 
-    const users = await User.find(searchQuery).select("username profile").limit(10);
+    const users = await User.find(searchQuery).select(PLAYER_FIELDS).limit(10).lean();
+    const access = await chatAccess(req.user.id, users.map((u) => u._id));
 
-    res.json({
-      success: true,
-      users: users.map((user) => ({
-        _id: user._id,
-        username: user.username,
-        profile: {
-          name: user.profile?.name || null,
-          profileImage: user.profile?.profileImage,
-          bio: user.profile?.bio,
-        },
-      })),
-    });
+    res.json({ success: true, users: users.map((u) => playerCard(u, access.get(String(u._id)))) });
   } catch (error) {
     console.error("Search error:", error);
     res.status(500).json({
       success: false,
       message: "Server error during search",
     });
+  }
+}
+
+/** Your friends (mutual followers) — the people you can start a chat with. */
+export async function getFriends(req, res) {
+  try {
+    const me = await User.findById(req.user.id).select("following followers").lean();
+    if (!me) return res.status(404).json({ success: false, message: "User not found" });
+
+    const friends = await User.find({ _id: { $in: friendIdsOf(me) } })
+      .select(PLAYER_FIELDS)
+      .lean();
+    friends.sort((a, b) =>
+      (a.profile?.name || a.username).localeCompare(b.profile?.name || b.username, undefined, { sensitivity: "base" }),
+    );
+    // Friends can always message each other
+    res.json({ success: true, users: friends.map((u) => playerCard(u, { isFriend: true, canMessage: true })) });
+  } catch (error) {
+    console.error("Error fetching friends:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 }
 
@@ -53,7 +104,7 @@ export async function getConversations(req, res) {
       .populate("lastMessage")
       .sort({ updatedAt: -1 });
 
-    res.json({ success: true, conversations });
+    res.json({ success: true, conversations: await withAccess(conversations, req.user.id) });
   } catch (error) {
     console.error("Error fetching conversations:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -63,6 +114,10 @@ export async function getConversations(req, res) {
 export async function getMessages(req, res) {
   try {
     const { conversationId } = req.params;
+
+    if (!mongoose.isValidObjectId(conversationId)) {
+      return res.status(404).json({ success: false, message: "Conversation not found" });
+    }
 
     const conversation = await Conversation.findOne({
       _id: conversationId,
@@ -86,6 +141,10 @@ export async function getMessages(req, res) {
   }
 }
 
+/**
+ * Open the 1:1 conversation with `userId`. An existing thread always opens (its history stays
+ * readable, flagged canMessage: false if you're no longer friends); a new one needs permission.
+ */
 export async function createOrGetConversation(req, res) {
   try {
     const { userId } = req.body;
@@ -100,11 +159,17 @@ export async function createOrGetConversation(req, res) {
       return res.status(400).json({ success: false, message: "You can't message yourself" });
     }
 
+    const access = (await chatAccess(req.user.id, [userId])).get(String(userId));
+    if (!access) return res.status(404).json({ success: false, message: "User not found" });
+
     let conversation = await Conversation.findOne({
       members: { $all: [req.user.id, userId] },
     }).populate("members", "username profile firstName lastName");
 
     if (!conversation) {
+      if (!access.canMessage) {
+        return res.status(403).json({ success: false, message: NOT_FRIENDS_MESSAGE, code: "CHAT_FORBIDDEN" });
+      }
       conversation = new Conversation({ members: [req.user.id, userId] });
       await conversation.save();
       await User.updateMany(
@@ -124,7 +189,10 @@ export async function createOrGetConversation(req, res) {
       );
     }
 
-    res.json({ success: true, conversation });
+    res.json({
+      success: true,
+      conversation: { ...conversation.toJSON(), isFriend: access.isFriend, canMessage: access.canMessage },
+    });
   } catch (error) {
     console.error("Error creating conversation:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -133,81 +201,40 @@ export async function createOrGetConversation(req, res) {
 
 export async function sendMessage(req, res) {
   try {
-    const { conversationId, content, type = "text" } = req.body;
-
-    if (!conversationId || !content) {
-      return res.status(400).json({
-        success: false,
-        message: "Conversation ID and content are required",
-      });
-    }
-
-    const conversation = await Conversation.findOne({
-      _id: conversationId,
-      members: req.user.id,
-    }).populate("members", "username profile firstName lastName");
-
-    if (!conversation) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Conversation not found" });
-    }
-
-    const message = new Message({
-      conversationId,
-      sender: req.user.id,
-      content: String(content).trim(),
-      type,
-    });
-    await message.save();
-
-    conversation.lastMessage = message._id;
-    if (conversation.messages) conversation.messages.push(message._id);
-    conversation.updatedAt = new Date();
-    await conversation.save();
-
-    await message.populate("sender", "username profile.name profile.profileImage");
-
-    // Deliver in real time exactly like the socket "send-message" path
-    const notificationService = getNotificationService();
-    const io = notificationService?.io;
-    if (io) {
-      io.to(String(conversationId)).emit("new-message", message);
-
-      const updatedConversation = await Conversation.findById(conversationId)
-        .populate("members", "username profile.name profile.profileImage")
-        .populate("lastMessage");
-      conversation.members.forEach((member) => {
-        io.to(`user_${member._id}`).emit("conversation-updated", updatedConversation);
-      });
-    }
-
-    const sender = await User.findById(req.user.id).select("username profile.name");
-    const senderName = sender?.profile?.name || sender?.username || "Someone";
-    const preview = `${content.substring(0, 50)}${content.length > 50 ? "..." : ""}`;
-    const otherMembers = conversation.members.filter(
-      (member) => member._id.toString() !== String(req.user.id),
-    );
-
-    for (const member of otherMembers) {
-      try {
-        if (notificationService) {
-          await notificationService.createNotification(
-            member._id,
-            "MESSAGE",
-            `${senderName} sent you a message: ${preview}`,
-            `/chat/${conversationId}`,
-            req.user.id,
-          );
-        }
-      } catch (notificationError) {
-        console.error("Error creating message notification:", notificationError);
-      }
-    }
-
+    const { conversationId, content } = req.body;
+    const message = await sendChatMessage({ senderId: req.user.id, conversationId, content });
     res.json({ success: true, message });
   } catch (error) {
-    console.error("Error sending message:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    return sendError(res, error, "Error sending message");
+  }
+}
+
+/** multipart: file (required), conversationId, content (optional caption) */
+export async function sendAttachment(req, res) {
+  try {
+    const { conversationId, content = "" } = req.body;
+    if (!req.file) return res.status(400).json({ success: false, message: "Choose a file to send" });
+
+    // Check before uploading so a refused message never leaves an orphaned file behind
+    await authorizeSend(req.user.id, conversationId);
+
+    let stored;
+    try {
+      stored = await storeAttachment(req.file);
+    } catch (uploadError) {
+      console.error("Chat attachment upload error:", uploadError);
+      return res.status(502).json({ success: false, message: "Couldn't upload that file. Please try again." });
+    }
+
+    const message = await sendChatMessage({
+      senderId: req.user.id,
+      conversationId,
+      content,
+      type: stored.type,
+      attachments: [stored.attachment],
+    });
+    res.status(201).json({ success: true, message });
+  } catch (error) {
+    return sendError(res, error, "Error sending attachment");
   }
 }

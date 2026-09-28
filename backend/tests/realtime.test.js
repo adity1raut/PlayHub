@@ -80,6 +80,7 @@ before(async () => {
       RAZORPAY_KEY_ID: "rzp_test_ci",
       RAZORPAY_KEY_SECRET: RZP_SECRET,
       CLIENT_URL: "http://localhost:5173",
+      MEDIA_STORAGE: "local", // chat attachments → backend/uploads/chat, never Cloudinary
     },
   });
   for (let i = 0; i < 80; i++) {
@@ -109,8 +110,12 @@ before(async () => {
   await sleep(300);
 });
 
+const uploadedFiles = [];
+
 after(async () => {
   if (skip) return;
+  const fs = await import("node:fs/promises");
+  await Promise.all(uploadedFiles.map((url) => fs.rm(path.join(BACKEND, url), { force: true })));
   Object.values(sockets).forEach((s) => s.close());
   if (server && server.exitCode === null) {
     const exited = new Promise((r) => server.once("exit", r));
@@ -246,4 +251,215 @@ test("post deletion broadcasts with the author id", { skip }, async () => {
   await api("alice", "DELETE", `/api/posts/${postId}`);
   await sleep(300);
   assert.equal(seen("bob", "post:deleted", (p) => p.postId === postId && p.authorId === String(alice._id)).length, 1);
+});
+
+// --- Friends, chat and settings ---
+// State so far: bob follows alice (re-followed via her store), alice doesn't follow bob.
+
+const postFile = (who, route, fields, file) => {
+  const form = new FormData();
+  Object.entries(fields).forEach(([k, v]) => form.append(k, v));
+  if (file) form.append("file", file.blob, file.name);
+  return fetch(`${API}${route}`, { method: "POST", headers: { cookie: cookie[who] }, body: form }).then(async (r) => ({
+    status: r.status,
+    body: await r.json().catch(() => ({})),
+  }));
+};
+
+let conversationId;
+test("chat: only friends (mutual followers) can start a conversation", { skip }, async () => {
+  const refused = await api("bob", "POST", "/api/chat/conversations", { userId: String(alice._id) });
+  assert.equal(refused.success, false);
+  assert.equal(refused.code, "CHAT_FORBIDDEN");
+
+  clear();
+  await api("alice", "POST", "/api/auth/profile/bob/follow"); // follow back → friends
+  await sleep(400);
+  assert.equal(seen("bob", "follow:updated", (p) => p.followerId === String(alice._id) && p.friends).length, 1);
+  assert.equal(
+    seen("bob", "new-notification", (p) => p.type === "FOLLOW" && /friends/.test(p.message)).length,
+    1,
+    "following back tells the other player you're now friends",
+  );
+
+  const opened = await api("bob", "POST", "/api/chat/conversations", { userId: String(alice._id) });
+  assert.equal(opened.success, true, opened.message);
+  assert.equal(opened.conversation.isFriend, true);
+  assert.equal(opened.conversation.canMessage, true);
+  conversationId = opened.conversation._id;
+
+  const friends = await api("bob", "GET", "/api/chat/friends");
+  assert.deepEqual(friends.users.map((u) => u.username), ["alice"]);
+  const publicFriends = await api("alice", "GET", "/api/auth/profile/bob/friends");
+  assert.deepEqual(publicFriends.data.map((u) => u.username), ["alice"]);
+
+  const search = await api("bob", "GET", "/api/chat/search?query=ali");
+  assert.equal(search.users[0]?.canMessage, true);
+});
+
+test("chat: friends message live; unfriending locks the thread but keeps its history", { skip }, async () => {
+  clear();
+  sockets.bob.emit("send-message", { conversationId, content: "gg wp" });
+  await sleep(400);
+  assert.equal(seen("alice", "new-message", (m) => m.content === "gg wp" && m.sender?.username === "bob").length, 1);
+  assert.equal(seen("alice", "conversation-updated", (c) => c._id === conversationId).length, 1);
+  assert.equal(seen("alice", "new-notification", (p) => p.type === "MESSAGE" && /gg wp/.test(p.message)).length, 1);
+
+  clear();
+  await api("alice", "POST", "/api/auth/profile/bob/follow"); // unfollow → no longer friends
+  sockets.bob.emit("send-message", { conversationId, content: "still there?" });
+  await sleep(400);
+  assert.equal(seen("bob", "error", (e) => e.code === "CHAT_FORBIDDEN").length, 1);
+  assert.equal(seen("alice", "new-message").length, 0);
+  const viaHttp = await api("bob", "POST", "/api/chat/messages", { conversationId, content: "hello?" });
+  assert.equal(viaHttp.code, "CHAT_FORBIDDEN");
+
+  const list = await api("bob", "GET", "/api/chat/conversations");
+  assert.equal(list.conversations.find((c) => c._id === conversationId)?.canMessage, false);
+  const history = await api("bob", "GET", `/api/chat/conversations/${conversationId}/messages`);
+  assert.deepEqual(history.messages.map((m) => m.content), ["gg wp"]);
+
+  // Both opening messages to everyone lets non-friends chat again
+  await api("alice", "PUT", "/api/auth/settings", { privacy: { messages: "everyone" } });
+  const oneSided = await api("bob", "POST", "/api/chat/messages", { conversationId, content: "hi" });
+  assert.equal(oneSided.code, "CHAT_FORBIDDEN", "needs both players to allow everyone");
+  await api("bob", "PUT", "/api/auth/settings", { privacy: { messages: "everyone" } });
+  const open = await api("bob", "POST", "/api/chat/messages", { conversationId, content: "hi" });
+  assert.equal(open.success, true, open.message);
+  const profile = await api("bob", "GET", "/api/auth/profile/alice");
+  assert.equal(profile.data.chat.open, true);
+  assert.ok(!("settings" in profile.data), "settings never leak on public profiles");
+
+  await api("alice", "PUT", "/api/auth/settings", { privacy: { messages: "friends" } });
+  await api("bob", "PUT", "/api/auth/settings", { privacy: { messages: "friends" } });
+  await api("alice", "POST", "/api/auth/profile/bob/follow"); // friends again
+});
+
+test("chat: photos, videos and files upload, deliver live and are served back", { skip }, async () => {
+  clear();
+  // 1×1 transparent PNG
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+    "base64",
+  );
+  const sent = await postFile(
+    "bob",
+    "/api/chat/messages/attachment",
+    { conversationId, content: "clip of the match" },
+    { blob: new Blob([png], { type: "image/png" }), name: "screen shot.png" },
+  );
+  assert.equal(sent.status, 201, sent.body.message);
+  const message = sent.body.message;
+  const [file] = message.attachments;
+  uploadedFiles.push(file.url);
+  assert.equal(message.type, "image");
+  assert.equal(message.content, "clip of the match");
+  assert.equal(file.originalName, "screen_shot.png");
+  assert.match(file.url, /^uploads\/chat\/[0-9a-f]{32}\.png$/);
+
+  await sleep(400);
+  assert.equal(seen("alice", "new-message", (m) => m._id === message._id && m.attachments?.length === 1).length, 1);
+  assert.equal(
+    seen("alice", "new-notification", (p) => p.type === "MESSAGE" && /sent you a photo: clip/.test(p.message)).length,
+    1,
+  );
+
+  const served = await fetch(`${API}/${file.url}`);
+  assert.equal(served.status, 200);
+  assert.equal(served.headers.get("content-type"), "image/png");
+  assert.equal(served.headers.get("x-content-type-options"), "nosniff");
+
+  const pdf = await postFile(
+    "alice",
+    "/api/chat/messages/attachment",
+    { conversationId },
+    { blob: new Blob(["%PDF-1.4\n"], { type: "application/pdf" }), name: "patch notes.pdf" },
+  );
+  assert.equal(pdf.status, 201, pdf.body.message);
+  uploadedFiles.push(pdf.body.message.attachments[0].url);
+  assert.equal(pdf.body.message.type, "file");
+  assert.equal(pdf.body.message.content, "", "caption is optional");
+
+  const html = await postFile(
+    "bob",
+    "/api/chat/messages/attachment",
+    { conversationId },
+    { blob: new Blob(["<script>alert(1)</script>"], { type: "text/html" }), name: "x.html" },
+  );
+  assert.equal(html.status, 400);
+
+  const noFile = await postFile("bob", "/api/chat/messages/attachment", { conversationId });
+  assert.equal(noFile.status, 400);
+});
+
+test("chat: outsiders can't listen in on a conversation", { skip }, async () => {
+  const bcrypt = (await import("bcryptjs")).default;
+  await models.User.create({
+    username: "eve",
+    email: "eve@test.dev",
+    password: await bcrypt.hash("secret123", 10),
+  });
+  const login = await fetch(`${API}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifier: "eve", password: "secret123" }),
+  });
+  const eveCookie = login.headers.get("set-cookie").split(";")[0];
+  const eve = io(API, { transports: ["websocket"], extraHeaders: { cookie: eveCookie } });
+  const got = [];
+  eve.on("new-message", (m) => got.push(m));
+  await new Promise((resolve) => eve.on("connect", resolve));
+  eve.emit("join-conversation", conversationId);
+  await sleep(300);
+
+  sockets.bob.emit("send-message", { conversationId, content: "secret strat" });
+  await sleep(400);
+  eve.close();
+  assert.equal(got.length, 0);
+});
+
+test("settings: defaults, validation, and muted notification types", { skip }, async () => {
+  const defaults = await api("alice", "GET", "/api/auth/settings");
+  assert.equal(defaults.data.privacy.messages, "friends");
+  assert.equal(defaults.data.notifications.likes, true);
+
+  const bad = await api("alice", "PUT", "/api/auth/settings", { notifications: { likes: "no" } });
+  assert.equal(bad.success, false);
+  const unknown = await api("alice", "PUT", "/api/auth/settings", { theme: "dark" });
+  assert.equal(unknown.success, false);
+
+  const saved = await api("alice", "PUT", "/api/auth/settings", { notifications: { likes: false } });
+  assert.equal(saved.data.notifications.likes, false);
+  assert.equal(saved.data.notifications.comments, true, "other switches are untouched");
+
+  const form = new FormData();
+  form.append("content", "mute test");
+  const created = await (
+    await fetch(`${API}/api/posts/create`, { method: "POST", headers: { cookie: cookie.alice }, body: form })
+  ).json();
+  const likesBefore = await notifications(alice, "LIKE");
+  const commentsBefore = await notifications(alice, "COMMENT");
+  await api("bob", "POST", `/api/posts/${created.post._id}/like`);
+  await api("bob", "POST", `/api/posts/${created.post._id}/comment`, { text: "nice" });
+  await sleep(400);
+  assert.equal(await notifications(alice, "LIKE"), likesBefore, "likes are muted");
+  assert.equal(await notifications(alice, "COMMENT"), commentsBefore + 1, "comments still notify");
+});
+
+test("settings: password change needs the current password", { skip }, async () => {
+  const wrong = await api("bob", "PUT", "/api/auth/password", { currentPassword: "nope", newPassword: "newsecret1" });
+  assert.equal(wrong.success, false);
+  const short = await api("bob", "PUT", "/api/auth/password", { currentPassword: "secret123", newPassword: "123" });
+  assert.equal(short.success, false);
+  const ok = await api("bob", "PUT", "/api/auth/password", { currentPassword: "secret123", newPassword: "newsecret1" });
+  assert.equal(ok.success, true, ok.message);
+
+  const login = (password) =>
+    fetch(`${API}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: "bob", password }),
+    });
+  assert.equal((await login("secret123")).status, 400);
+  assert.equal((await login("newsecret1")).status, 200);
 });

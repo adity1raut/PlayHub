@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { Avatar, IconButton, StatusDot } from "../../../components/ui";
+import { Avatar, Badge, IconButton, StatusDot } from "../../../components/ui";
 import { cn } from "../../../lib/cn";
 
 const ChatHeader = ({ currentConversation, setActiveView, onBack, getOtherUser, isTyping = false, isConnected = true }) => {
@@ -12,8 +12,9 @@ const ChatHeader = ({ currentConversation, setActiveView, onBack, getOtherUser, 
     <>
       <Avatar src={otherUser?.profile?.profileImage} name={name} size="sm" />
       <span className="min-w-0">
-        <span className="block truncate text-xs font-extrabold tracking-[0.06em] text-foreground uppercase">
-          {name}
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-xs font-extrabold tracking-[0.06em] text-foreground uppercase">{name}</span>
+          {currentConversation?.isFriend && <Badge variant="success">Friend</Badge>}
         </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px]">
           {otherUser?.username && <span className="truncate text-muted-foreground">@{otherUser.username}</span>}

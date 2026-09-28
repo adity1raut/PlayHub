@@ -4,8 +4,11 @@ import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { cn } from "../../lib/cn";
 import { toast } from "../../lib/toast";
-import useChat, { idOf } from "./hooks/useChat";
+import { useSocketEvent } from "../../lib/useSocketEvent";
+import useChat, { canMessageIn, idOf } from "./hooks/useChat";
 import useSearch from "./hooks/useSearch";
+import useFriends from "./hooks/useFriends";
+import { attachmentProblem } from "./attachments";
 import Sidebar from "./components/Sidebar";
 import ChatArea from "./components/ChatArea";
 import WelcomeScreen from "./components/WelcomeScreen";
@@ -78,13 +81,37 @@ const ChatApplication = () => {
     stopTyping,
   } = chat;
   const { searchResults, searchQuery, setSearchQuery, searchType, setSearchType, loading } = useSearch();
+  // The sidebar lists friends whenever it's searching (see Sidebar `searching`)
+  const friendsShown = activeView === "search" || searchQuery.trim().length > 0;
+  const friends = useFriends(friendsShown);
 
   const currentId = currentConversation?._id ?? null;
   const messageInput = (currentId && drafts[currentId]) || "";
 
+  // A file picked for the open thread, and the upload in flight (one at a time)
+  const [attachment, setAttachment] = useState(null); // { file, conversationId }
+  const [upload, setUpload] = useState(null); // { conversationId, progress: 0-100 }
+  const pendingFile = attachment?.conversationId === currentId ? attachment.file : null;
+  const uploadProgress = upload?.conversationId === currentId ? upload.progress : null;
+
+  const attachFile = (file) => {
+    const problem = attachmentProblem(file);
+    if (problem) toast.error(problem);
+    else if (currentId) setAttachment({ file, conversationId: currentId });
+  };
+  const removeAttachment = () => setAttachment(null);
+
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
+
+  // Following / unfollowing makes or breaks friendships, which opens or locks threads
+  useSocketEvent("follow:updated", (e = {}) => {
+    const me = idOf(user);
+    if (!me || (e.targetId !== me && e.followerId !== me)) return;
+    fetchConversations();
+    if (friendsShown) friends.refresh();
+  });
 
   // Other member of a 1:1 conversation (members are populated user docs)
   const getOtherUser = useCallback(
@@ -197,7 +224,23 @@ const ChatApplication = () => {
   const sendMessage = async () => {
     const conversationId = currentId;
     const content = messageInput;
-    if (!conversationId || !content.trim() || chat.sending) return;
+    if (!conversationId || chat.sending) return;
+
+    // With a file attached, the text becomes its caption
+    if (pendingFile) {
+      if (upload) return;
+      setDraft(conversationId, "");
+      setUpload({ conversationId, progress: 0 });
+      const sent = await chat.sendAttachment(pendingFile, content, {
+        onProgress: (progress) => setUpload({ conversationId, progress }),
+      });
+      setUpload(null);
+      if (sent) setAttachment((cur) => (cur?.file === pendingFile ? null : cur));
+      else setDraft(conversationId, (cur) => (cur.trim() ? cur : content));
+      return;
+    }
+
+    if (!content.trim()) return;
     setDraft(conversationId, "");
     const sent = await chat.sendMessage(content);
     if (!sent) setDraft(conversationId, (cur) => (cur.trim() ? cur : content));
@@ -249,6 +292,8 @@ const ChatApplication = () => {
         onEndSearch={endSearch}
         isConnected={isConnected}
         searchInputRef={searchInputRef}
+        friends={friends.friends}
+        friendsLoading={friends.loading}
       />
 
       <section
@@ -275,6 +320,12 @@ const ChatApplication = () => {
             isConnected={isConnected}
             loadingMessages={chat.loadingMessages}
             sending={chat.sending}
+            canMessage={canMessageIn(currentConversation)}
+            attachment={pendingFile}
+            onAttach={attachFile}
+            onRemoveAttachment={removeAttachment}
+            uploadProgress={uploadProgress}
+            uploadBusy={Boolean(upload)}
           />
         ) : (
           <WelcomeScreen onNewChat={startNewChat} />

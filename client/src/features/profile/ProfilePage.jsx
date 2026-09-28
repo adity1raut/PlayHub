@@ -156,6 +156,19 @@ export default function ProfilePage() {
     if (postId) handlePostDeleted(postId);
   });
 
+  // Realtime profile edits (name, bio, avatar, cover) — including our own from another tab.
+  // After a reconnect, reload the profile (follows / edits made while offline).
+  useSocketEvent(
+    "user:updated",
+    ({ userId, profile } = {}) => {
+      if (!profile) return;
+      setProfileData((prev) =>
+        prev && idOf(prev) === String(userId) ? { ...prev, profile: { ...prev.profile, ...profile } } : prev,
+      );
+    },
+    { onReconnect: () => username && fetchProfile() },
+  );
+
   if (loading && !profileData) {
     return (
       <Page>

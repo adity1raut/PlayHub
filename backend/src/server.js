@@ -12,6 +12,7 @@ import setupSocketHandlers from "./socket/socket.handlers.js";
 import { verifyMailer } from "./config/nodemailer.js";
 import { initSfu } from "./sfu/index.js";
 import { announceStreamLive } from "./modules/stream/stream.controller.js";
+import { recordViewers } from "./modules/stream/stream.socket.js";
 
 env.config();
 
@@ -43,7 +44,13 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 const BACKEND_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-app.use("/uploads", express.static(path.join(BACKEND_ROOT, "uploads")));
+// nosniff: user uploads (e.g. chat attachments) are only ever served as their declared type
+app.use(
+  "/uploads",
+  express.static(path.join(BACKEND_ROOT, "uploads"), {
+    setHeaders: (res) => res.setHeader("X-Content-Type-Options", "nosniff"),
+  }),
+);
 
 app.get("/api/health", (req, res) => {
   res.json({ success: true, status: "ok", uptime: process.uptime() });
@@ -73,9 +80,22 @@ const io = new Server(server, {
 setupSocketHandlers(io);
 
 // Live video SFU. If it can't start (e.g. port in use) the rest of the app keeps working.
-initSfu(io, { onBroadcastStart: announceStreamLive }).catch((error) =>
+initSfu(io, { onBroadcastStart: announceStreamLive, onViewersChange: recordViewers }).catch((error) =>
   console.error(`SFU failed to start — live video disabled: ${error.message}`),
 );
+
+// mediasoup adds its own SIGTERM/SIGINT listeners, which turns off Node's default "exit on
+// SIGTERM" — so exit explicitly (docker stop / hosting platforms stop the app with SIGTERM).
+let shuttingDown = false;
+const shutdown = (signal) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`${signal} received — shutting down`);
+  setTimeout(() => process.exit(0), 3000).unref(); // don't wait forever on keep-alive connections
+  io.close(() => process.exit(0)); // disconnects every socket and closes the HTTP server
+};
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 const PORT = process.env.PORT || 4000;
 

@@ -4,6 +4,7 @@ import { useAuth } from "./AuthContext";
 import { useSocket } from "./SocketContext";
 import { API_URL } from "../lib/config";
 import { toast } from "../lib/toast";
+import { useSocketEvent } from "../lib/useSocketEvent";
 import {
   initAlertSound,
   isSoundEnabled,
@@ -20,6 +21,7 @@ import {
   sendTestPush,
   syncPushSubscription,
 } from "../lib/push";
+import { showDesktopNotification } from "../lib/desktopNotify";
 import NotificationToast from "../features/notifications/NotificationToast";
 import { resolveLink, typeMeta } from "../features/notifications/notificationMeta";
 
@@ -27,8 +29,6 @@ const NotificationContext = createContext();
 
 const DEDUPE_MS = 10000; // socket + service-worker copies of one notification
 const STICKY_TYPES = new Set(["MESSAGE", "STREAM_START"]);
-const ICON = "/icons/icon-192.png";
-const BADGE = "/icons/badge-96.png";
 
 const systemTitle = (type) => (type === "STREAM_START" ? "🔴 Live now" : typeMeta(type).title);
 
@@ -108,7 +108,8 @@ export function NotificationProvider({ children }) {
         setNotifications((prev) =>
           prev.map((n) => (n._id === notificationId ? { ...n, isRead: true } : n)),
         );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
+        // The server's count, not a local -1: its `notification-count` push may land first
+        setUnreadCount((prev) => res.data.unreadCount ?? Math.max(0, prev - 1));
       }
     } catch (error) {
       console.error("Error marking notification as read:", error);
@@ -120,7 +121,7 @@ export function NotificationProvider({ children }) {
       const res = await axios.put(`${API_URL}/api/notifications/read-all`);
       if (res.data.success) {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-        setUnreadCount(0);
+        setUnreadCount(res.data.unreadCount ?? 0);
       }
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
@@ -133,7 +134,7 @@ export function NotificationProvider({ children }) {
       if (res.data.success) {
         const deleted = notifications.find((n) => n._id === notificationId);
         setNotifications((prev) => prev.filter((n) => n._id !== notificationId));
-        if (deleted && !deleted.isRead) setUnreadCount((prev) => Math.max(0, prev - 1));
+        setUnreadCount((prev) => res.data.unreadCount ?? (deleted && !deleted.isRead ? Math.max(0, prev - 1) : prev));
       }
     } catch (error) {
       console.error("Error deleting notification:", error);
@@ -273,28 +274,15 @@ export function NotificationProvider({ children }) {
   );
 
   const showSystemNotification = useCallback(
-    (n, tag) => {
-      const title = systemTitle(n.type);
-      const options = { body: n.message, icon: ICON, badge: BADGE, tag, data: { url: n.link || "/notification" } };
-      try {
-        const sys = new Notification(title, options);
-        sys.onclick = () => {
-          try {
-            window.focus();
-          } catch {
-            /* ignore */
-          }
-          sys.close();
-          openNotification(n);
-        };
-      } catch {
-        // Android Chrome only allows notifications through the service worker
-        navigator.serviceWorker
-          ?.getRegistration("/")
-          .then((reg) => reg?.showNotification(title, options))
-          .catch(() => {});
-      }
-    },
+    (n, tag) =>
+      showDesktopNotification({
+        title: systemTitle(n.type),
+        body: n.message,
+        tag,
+        url: n.link || "/notification",
+        requireInteraction: STICKY_TYPES.has(n.type),
+        onClick: () => openNotification(n),
+      }),
     [openNotification],
   );
 
@@ -312,10 +300,11 @@ export function NotificationProvider({ children }) {
 
       if (document.visibilityState === "hidden") {
         if (pushStatusRef.current === "enabled") return; // the service worker rings the device
-        if ("Notification" in window && Notification.permission === "granted") {
-          showSystemNotification(n, tag);
-          return;
-        }
+        if (showSystemNotification(n, tag)) return;
+      } else if (!document.hasFocus()) {
+        // On screen but another window is in front: the OS notification gets noticed, and the
+        // in-app pop-up below is waiting when they come back
+        showSystemNotification(n, tag);
       }
 
       // On the chat screen new messages are already visible: just beep
@@ -347,6 +336,29 @@ export function NotificationProvider({ children }) {
       socket.off("notification-count", onCount);
     };
   }, [socket, deliverAlert]);
+
+  // Reads and deletions made in the user's other tabs (the badge follows `notification-count`)
+  useSocketEvent(
+    "notification:read",
+    ({ id } = {}) => {
+      if (!id) return;
+      setNotifications((prev) =>
+        prev.some((n) => n._id === id && !n.isRead)
+          ? prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
+          : prev,
+      );
+    },
+    { onReconnect: () => fetchNotifications(pagination.page, pagination.limit) },
+  );
+
+  useSocketEvent("notification:read-all", () => {
+    setNotifications((prev) => (prev.some((n) => !n.isRead) ? prev.map((n) => ({ ...n, isRead: true })) : prev));
+  });
+
+  useSocketEvent("notification:deleted", ({ id } = {}) => {
+    if (!id) return;
+    setNotifications((prev) => (prev.some((n) => n._id === id) ? prev.filter((n) => n._id !== id) : prev));
+  });
 
   // Messages from the service worker: pushes while the app is on screen, notification clicks
   useEffect(

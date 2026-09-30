@@ -2,7 +2,6 @@ import Store from "./store.model.js";
 
 const verifyStoreOwnership = async (req, res, next) => {
   try {
-    // Check for both storeId and id parameters
     const storeId = req.params.storeId || req.params.id;
     const userId = req.user._id || req.user.id;
 
@@ -27,7 +26,6 @@ const verifyStoreOwnership = async (req, res, next) => {
       userId,
     );
 
-    // Find the store
     const store = await Store.findById(storeId);
 
     if (!store) {
@@ -38,7 +36,6 @@ const verifyStoreOwnership = async (req, res, next) => {
       });
     }
 
-    // Check if the authenticated user owns this store
     if (store.owner.toString() !== userId.toString()) {
       console.log("Access denied. Store owner:", store.owner, "User:", userId);
       return res.status(403).json({
@@ -48,7 +45,6 @@ const verifyStoreOwnership = async (req, res, next) => {
     }
 
     console.log("Store ownership verified successfully");
-    // Add store to request object for use in route handlers
     req.store = store;
     next();
   } catch (error) {

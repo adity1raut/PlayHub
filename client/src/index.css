@@ -177,7 +177,6 @@
   }
 }
 
-/* ---------------------------------------------------------------- base --- */
 @layer base {
   * {
     border-color: var(--border);
@@ -246,7 +245,6 @@
   }
 }
 
-/* ----------------------------------------------------------- utilities --- */
 @utility eyebrow {
   letter-spacing: 0.16em;
   text-transform: uppercase;

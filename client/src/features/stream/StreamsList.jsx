@@ -73,7 +73,6 @@ const markEnded = (endedAt) => (s) => {
   return next;
 };
 
-// Format duration
 const formatDuration = (startedAt, endedAt) => {
   if (!startedAt) return "0m";
   const start = new Date(startedAt);
@@ -151,7 +150,6 @@ const StreamsList = () => {
     return () => clearInterval(interval);
   }, [fetchLiveStreams]);
 
-  // Drop pending highlight timers on unmount
   useEffect(() => {
     const timers = freshTimers.current;
     return () => timers.forEach(clearTimeout);
@@ -220,33 +218,27 @@ const StreamsList = () => {
     else fetchMyStreams();
   };
 
-  // Handle stream creation
   const handleStreamCreated = (newStream) => {
     // `stream:started` may already have added it (with the host populated)
     setMyStreams((prev) => (prev.some((s) => sameId(s._id, newStream._id)) ? prev : [newStream, ...prev]));
     setShowCreateModal(false);
-    // Navigate to the new stream
     navigate(`/stream/${newStream._id}`);
   };
 
-  // Handle view stream
   const handleViewStream = (stream) => {
     navigate(`/stream/${stream._id}`);
   };
 
-  // Handle show analytics
   const handleShowAnalytics = (streamId) => {
     setSelectedStreamId(streamId);
     setShowAnalytics(true);
   };
 
-  // Ask before ending
   const requestEndStream = (streamId) => {
     const target = [...myStreams, ...streams].find((s) => s._id === streamId) || { _id: streamId };
     setEndTarget(target);
   };
 
-  // Handle end stream — PUT /api/stream/:id/end
   const handleEndStream = async (streamId) => {
     setEnding(true);
     try {
@@ -264,7 +256,6 @@ const StreamsList = () => {
 
   const isOwn = (stream) => Boolean(user?._id) && String(idOf(stream.host)) === String(user._id);
 
-  // Filter streams based on search
   const term = searchTerm.trim().toLowerCase();
   const filteredStreams = (activeTab === "live" ? streams : myStreams).filter(
     (stream) =>
@@ -273,7 +264,6 @@ const StreamsList = () => {
       stream.host?.username?.toLowerCase().includes(term),
   );
 
-  // List view row
   const renderStreamRow = (stream, index) => {
     const own = isOwn(stream);
     return (
@@ -374,7 +364,6 @@ const StreamsList = () => {
         }
       />
 
-      {/* Controls */}
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <Tabs
@@ -415,7 +404,6 @@ const StreamsList = () => {
         {error && <Alert variant="destructive">{error}</Alert>}
       </section>
 
-      {/* Content */}
       <section aria-label={activeTab === "live" ? "Live streams" : "My streams"}>
         {loading ? (
           <LoadingBlock label="Loading streams" />
@@ -466,7 +454,6 @@ const StreamsList = () => {
         )}
       </section>
 
-      {/* Stream stats for My Streams */}
       {activeTab === "my-streams" && myStreams.length > 0 && (
         <section>
           <h2 className="eyebrow mb-3 text-faint">Stream statistics</h2>
@@ -485,7 +472,6 @@ const StreamsList = () => {
         </section>
       )}
 
-      {/* Modals */}
       <CreateStreamModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}

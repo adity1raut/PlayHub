@@ -5,8 +5,6 @@ import { toast } from "../../../lib/toast";
 import { useAuth } from "../../../context/AuthContext";
 import { useSocket } from "../../../context/SocketContext";
 
-/* ---------- helpers (shared with the chat components) ---------- */
-
 /** String id of a populated doc or a raw ObjectId/string. */
 export const idOf = (value) =>
   value && typeof value === "object" ? String(value._id ?? "") : value ? String(value) : "";
@@ -102,8 +100,6 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
   const joinedRef = useRef(new Set());
   const remoteTypingTimers = useRef({});
   const selfTypingRef = useRef({ conversationId: null, startedAt: 0, timer: null });
-
-  /* ---------- REST ---------- */
 
   const fetchConversations = useCallback(async () => {
     try {
@@ -205,8 +201,6 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
     [me, fetchConversations],
   );
 
-  /* ---------- typing (outgoing) ---------- */
-
   const stopTyping = useCallback(() => {
     const { conversationId, timer } = selfTypingRef.current;
     clearTimeout(timer);
@@ -232,8 +226,6 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
     };
   }, [stopTyping]);
 
-  /* ---------- selection ---------- */
-
   const openConversation = useCallback(
     (conversation) => {
       if (!conversation?._id) return;
@@ -257,8 +249,6 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
     setMessages([]);
     setLoadingMessages(false);
   }, [stopTyping]);
-
-  /* ---------- incoming ---------- */
 
   const clearPending = useCallback(() => {
     clearTimeout(pendingSendRef.current?.timer);
@@ -419,8 +409,6 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
     };
   }, [socket, me, receiveMessage, clearPending, clearRemoteTyping, lockConversation]);
 
-  /* ---------- rooms ---------- */
-
   // The server doesn't auto-join conversation rooms, so join every conversation we know about
   // (needed to receive new-message / typing events) and re-join after every reconnect.
   const roomKey = useMemo(() => {
@@ -465,8 +453,6 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
     if (isConnected) link.ever = true;
   }, [isConnected, fetchConversations, fetchMessages]);
 
-  /* ---------- read receipts ---------- */
-
   useEffect(() => {
     const onVisibility = () => setPageVisible(document.visibilityState !== "hidden");
     document.addEventListener("visibilitychange", onVisibility);
@@ -500,8 +486,6 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
       ),
     );
   }, [messages, currentId, socket, isConnected, pageVisible, me]);
-
-  /* ---------- sending ---------- */
 
   // Resolves true once the message has been handed off (socket) or saved (HTTP fallback).
   const sendMessage = useCallback(
@@ -583,7 +567,6 @@ const useChat = (socketOverride, { onSendFailed } = {}) => {
     [stopTyping, receiveMessage, lockConversation],
   );
 
-  // Cleanup timers on unmount
   useEffect(
     () => () => {
       stopTyping();

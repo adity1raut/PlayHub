@@ -1,0 +1,8 @@
+node_modules
+dist
+npm-debug.log*
+# Keep local settings (e.g. VITE_BACKEND_URL=http://localhost:4000) out of the image build
+.env
+.env.*
+Dockerfile
+.dockerignore

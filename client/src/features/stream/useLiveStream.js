@@ -48,8 +48,6 @@ export function groupGuests(tracks) {
   return guests;
 }
 
-/* =============================================================== host ==== */
-
 /**
  * Broadcast camera, mic and screen to the stream's SFU room.
  * Tracks are kept locally and re-published automatically after a reconnect.
@@ -313,8 +311,6 @@ export function useStreamBroadcast(streamId, { enabled = true } = {}) {
   };
 }
 
-/* ============================================================= viewer ==== */
-
 /** Receive the host's tracks from the SFU. */
 export function useStreamWatch(streamId, { enabled = true, retryKey = 0 } = {}) {
   const { socket, isConnected } = useSocket();
@@ -429,8 +425,6 @@ export function useStreamWatch(streamId, { enabled = true, retryKey = 0 } = {}) 
     unpublish,
   };
 }
-
-/* ============================================================== guest ==== */
 
 /**
  * A guest's own mic and screen while they're on stage. Each is turned on by a click, so the browser

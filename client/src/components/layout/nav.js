@@ -6,6 +6,7 @@ import {
   Newspaper,
   Package,
   Radio,
+  ReceiptText,
   Search,
   Settings,
   ShoppingCart,
@@ -43,6 +44,7 @@ export const NAV_GROUPS = [
       { id: "my-store", label: "My store", icon: Warehouse, path: "/my-store" },
       { id: "cart", label: "Cart", icon: ShoppingCart, path: "/cart", showCart: true },
       { id: "wishlist", label: "Wishlist", icon: Heart, path: "/wishlist" },
+      { id: "orders", label: "My orders", icon: ReceiptText, path: "/orders" },
     ],
   },
 ];

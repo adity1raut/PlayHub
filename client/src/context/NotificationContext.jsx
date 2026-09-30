@@ -150,8 +150,7 @@ export function NotificationProvider({ children }) {
     }
   }, [isAuthenticated, fetchNotifications]);
 
-  /* ---------------- navigation (NotificationToaster plugs the router in) ---------------- */
-
+  // NotificationToaster plugs the router in
   const navigatorRef = useRef(null);
 
   const registerNavigator = useCallback((fn) => {
@@ -167,8 +166,6 @@ export function NotificationProvider({ children }) {
     if (navigatorRef.current) navigatorRef.current(target.to, target.state ? { state: target.state } : undefined);
     else historyNavigate(target.to, target.state);
   }, []);
-
-  /* ---------------- device alerts (Web Push) ---------------- */
 
   const refreshPushStatus = useCallback(async () => {
     const status = await getPushStatus();
@@ -229,8 +226,6 @@ export function NotificationProvider({ children }) {
     if (userId) syncPushSubscription().then(refreshPushStatus);
     else if (prev) releasePushSubscription().then(refreshPushStatus);
   }, [userId, refreshPushStatus]);
-
-  /* ---------------- in-app alert: toast + sound ---------------- */
 
   const recentAlertsRef = useRef(new Map());
   const notificationsRef = useRef(notifications);
@@ -392,7 +387,6 @@ export function NotificationProvider({ children }) {
         markAsRead,
         markAllAsRead,
         deleteNotification,
-        // realtime alerts
         openNotification,
         registerNavigator,
         pushStatus,

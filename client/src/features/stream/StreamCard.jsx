@@ -71,7 +71,6 @@ const StreamCard = ({
       {fresh && (
         <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 border border-primary/60 bg-primary/[0.04]" />
       )}
-      {/* Thumbnail */}
       <button
         type="button"
         onClick={open}
@@ -128,7 +127,6 @@ const StreamCard = ({
         </span>
       </button>
 
-      {/* Body */}
       <div className="flex flex-1 flex-col gap-3 p-4">
         <button type="button" onClick={open} className="min-w-0 text-left outline-none">
           <h3 className="truncate text-sm font-bold tracking-[0.1em] text-foreground uppercase transition-colors group-hover:text-primary">

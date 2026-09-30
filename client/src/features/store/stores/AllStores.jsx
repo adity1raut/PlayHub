@@ -337,7 +337,6 @@ function AllStores() {
           </Card>
         )}
 
-        {/* Pagination */}
         {!loading && totalPages > 1 && (
           <nav aria-label="Pagination" className="flex items-center justify-between gap-3 pt-2">
             <Button

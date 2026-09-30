@@ -281,7 +281,6 @@ export default function PublicProducts() {
         }
       />
 
-      {/* Filters */}
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <Input
           label="Search"
@@ -507,7 +506,6 @@ export default function PublicProducts() {
               </Card>
             )}
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <nav aria-label="Pagination" className="flex items-center justify-between gap-3 pt-2">
                 <Button

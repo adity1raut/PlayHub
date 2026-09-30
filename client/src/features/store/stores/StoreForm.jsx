@@ -95,7 +95,6 @@ function StoreForm({
       }
     >
       <form id={formId} onSubmit={handleSubmit} className="space-y-4">
-        {/* Logo */}
         <div>
           <Label>Store logo</Label>
           <div className="flex items-center gap-4">

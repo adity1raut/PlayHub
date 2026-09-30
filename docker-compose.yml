@@ -1,0 +1,59 @@
+# One-server deployment: the app and API on one domain, live video on port 44444.
+#
+#   cp backend/.env.example backend/.env    # fill it in (NODE_ENV=production, SFU_ANNOUNCED_IP, ...)
+#   docker compose up -d --build                        # http://<server>:8080
+#   DOMAIN=example.com docker compose --profile https up -d --build   # https://example.com
+#
+# MongoDB is not included: point MONGODB_URI at MongoDB Atlas or your own server.
+
+services:
+  backend:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      # Fixed so it matches the published port below
+      SFU_PORT: 44444
+    ports:
+      # WebRTC media goes straight to the backend, not through nginx
+      - "44444:44444/udp"
+      - "44444:44444/tcp"
+    volumes:
+      - backend-data:/app/data
+      - backend-uploads:/app/uploads
+    restart: unless-stopped
+
+  web:
+    build: ./client
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    restart: unless-stopped
+
+  # HTTPS with automatic Let's Encrypt certificates. Camera/mic and push notifications need
+  # HTTPS. Point DOMAIN's DNS at this server and open ports 80 and 443 first.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    depends_on:
+      - web
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  backend-data:
+  backend-uploads:
+  caddy-data:
+  caddy-config:

@@ -104,7 +104,6 @@ function MyStore() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userStore?._id]);
 
-  // Clear context errors when component mounts
   useEffect(() => {
     clearError();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -226,7 +225,6 @@ function MyStore() {
       setShowForm(false);
       setEditingStore(null);
       toast.success("Store updated successfully!");
-      // Refresh user store data
       getCurrentUserStore();
     } catch (error) {
       toast.error(apiError(error, "Failed to update store"));
@@ -247,7 +245,6 @@ function MyStore() {
       const result = await deleteStore(userStore._id);
       if (result?.success) {
         toast.success("Store deleted successfully!");
-        // Clear products since store is deleted
         setStoreProducts([]);
         setProductTotal(0);
         setConfirmDeleteStore(false);
@@ -275,7 +272,6 @@ function MyStore() {
       if (result?.success) {
         toast.success("Product deleted successfully!");
         setProductToDelete(null);
-        // Refresh store products, user store data and analytics
         await Promise.all([fetchStoreProducts(), getCurrentUserStore()]);
         setAnalyticsKey((k) => k + 1);
       } else {
@@ -395,7 +391,6 @@ function MyStore() {
         }
       />
 
-      {/* Overview */}
       <section>
         <h2 className="eyebrow mb-3 text-faint">Overview</h2>
         <div className="grid grid-cols-2 border-t border-l border-border lg:grid-cols-4">
@@ -412,7 +407,6 @@ function MyStore() {
         </div>
       </section>
 
-      {/* Inventory */}
       <section>
         <h2 className="eyebrow mb-3 text-faint">Inventory</h2>
         <Card>
@@ -507,7 +501,6 @@ function MyStore() {
         </Card>
       </section>
 
-      {/* Analytics */}
       <section>
         <h2 className="eyebrow mb-3 text-faint">Analytics</h2>
         <StoreAnalytics storeId={userStore._id} products={storeProducts} refreshKey={analyticsKey} />
@@ -515,7 +508,6 @@ function MyStore() {
 
       {storeForm}
 
-      {/* Delete store confirmation */}
       <Modal
         open={confirmDeleteStore}
         onClose={() => !deletingStore && setConfirmDeleteStore(false)}
@@ -539,7 +531,6 @@ function MyStore() {
         </p>
       </Modal>
 
-      {/* Delete product confirmation */}
       <Modal
         open={!!productToDelete}
         onClose={() => !deletingProduct && setProductToDelete(null)}

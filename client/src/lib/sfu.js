@@ -138,8 +138,6 @@ export class SfuSession {
     return this.wireTransport(transport);
   }
 
-  /* ------------------------------------------------------------ viewer --- */
-
   async consume({ producerId, source }) {
     if (this.closed || this.consumers.has(producerId)) return;
     if (!this.recvTransport) this.recvTransport = await this.createTransport("recv");
@@ -199,8 +197,6 @@ export class SfuSession {
     this.handlers.onTrackEnded?.(producerId);
   }
 
-  /* -------------------------------------------------------------- host --- */
-
   async publish(track, source) {
     if (!this.sendTransport) {
       this.sendTransport = await this.createTransport("send");
@@ -252,8 +248,6 @@ export class SfuSession {
       () => {},
     );
   }
-
-  /* ------------------------------------------------------------ common --- */
 
   close() {
     if (this.closed) return;

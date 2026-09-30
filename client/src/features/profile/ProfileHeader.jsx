@@ -172,7 +172,6 @@ const ProfileHeader = ({
 
   return (
     <Card corners className="overflow-hidden">
-      {/* Title strip */}
       <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-2.5 sm:px-6">
         <span className="eyebrow min-w-0 truncate text-muted-foreground">
           Profile <span className="text-faint">{"//"}</span> @{profileData.username}
@@ -188,7 +187,6 @@ const ProfileHeader = ({
         )}
       </div>
 
-      {/* Cover */}
       <div className="relative h-32 border-b border-border bg-muted bg-grid sm:h-44">
         {coverSrc && (
           <img src={mediaUrl(coverSrc)} alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover" />
@@ -213,7 +211,6 @@ const ProfileHeader = ({
         )}
       </div>
 
-      {/* Identity */}
       <div className="px-5 pb-6 sm:px-6">
         <div className="-mt-12 flex flex-wrap items-end justify-between gap-3">
           <div className="relative">
@@ -308,7 +305,6 @@ const ProfileHeader = ({
         </div>
       </div>
 
-      {/* Stats */}
       {/* 2×2 on phones, one row from sm. The card clips overflow, so -mr/-mb hide the outer cell borders. */}
       <div className="-mr-px -mb-px grid grid-cols-2 border-t border-border sm:grid-cols-4">
         {stats.map(({ key, label, value }, i) => (

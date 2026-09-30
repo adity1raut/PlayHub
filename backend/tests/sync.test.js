@@ -149,6 +149,14 @@ test("checkout: stock drops live for everyone and the buyer's cart empties in ev
   });
   const buyer = await h.models.User.findById(h.users.bob._id).lean();
   const [orderId, paymentId] = ["order_sync_1", "pay_sync_1"];
+  const cart = await api("bob", "GET", "/api/stores/cart");
+  await h.models.Payment.create({
+    user: h.users.bob._id,
+    razorpayOrderId: orderId,
+    amount: Math.round(cart.totalAmount * 100),
+    addressId: buyer.addresses.at(-1)._id,
+    mode: "test",
+  });
 
   clear();
   const res = await api("bob", "POST", "/api/stores/order/verify", {

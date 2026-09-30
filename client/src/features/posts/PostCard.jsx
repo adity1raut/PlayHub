@@ -255,7 +255,6 @@ const Post = ({ post, onUpdate, onDelete }) => {
 
   return (
     <Card as="article" id={`post-${post._id}`} className="scroll-mt-6">
-      {/* Header */}
       <header className="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
         {profileLink ? (
           <Link to={profileLink} aria-label={`${authorName}'s profile`} className="shrink-0">
@@ -293,7 +292,6 @@ const Post = ({ post, onUpdate, onDelete }) => {
         )}
       </header>
 
-      {/* Body */}
       <div className="space-y-4 px-4 py-4 sm:px-5">
         {post.content && (
           <p className="text-sm leading-relaxed break-words whitespace-pre-wrap text-foreground">{post.content}</p>
@@ -317,7 +315,6 @@ const Post = ({ post, onUpdate, onDelete }) => {
           ))}
       </div>
 
-      {/* Actions */}
       <footer className="flex items-center gap-1 border-t border-border px-2 py-2 sm:px-3">
         <Button
           variant="ghost"
@@ -383,7 +380,6 @@ const Post = ({ post, onUpdate, onDelete }) => {
         </div>
       </footer>
 
-      {/* Comments */}
       {showComments && (
         <section aria-label="Comments" className="space-y-4 border-t border-border bg-background/40 px-4 py-4 sm:px-5">
           {comments.length > 0 ? (
@@ -452,7 +448,6 @@ const Post = ({ post, onUpdate, onDelete }) => {
         </section>
       )}
 
-      {/* Delete confirmation */}
       <Modal
         open={confirmDelete}
         onClose={() => !isDeleting && setConfirmDelete(false)}

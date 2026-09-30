@@ -34,7 +34,6 @@ const router = express.Router();
 const PUBLIC_USER_EXCLUDE = "-password -email -addresses -wishlist -conversations -settings";
 const PUBLIC_USER_FIELDS = "username profile followers following";
 
-// --- Auth ---
 router.post("/login", async (req, res) => {
   try {
     const { identifier, password } = req.body;
@@ -52,7 +51,6 @@ router.post("/logout", (req, res) => {
   res.status(200).json({ success: true, message: "Logged out successfully" });
 });
 
-// --- Profile ---
 router.get("/profile", authenticateToken, (req, res) => getProfile(req, res));
 
 router.get("/profile/me/posts", authenticateToken, async (req, res) => {
@@ -85,7 +83,6 @@ router.get("/profile/:username", authenticateToken, async (req, res) => {
 
 router.put("/profile", authenticateToken, (req, res) => updateProfile(req, res));
 
-// --- Settings ---
 router.get("/settings", authenticateToken, getSettings);
 router.put("/settings", authenticateToken, updateSettings);
 router.put("/password", authenticateToken, changePassword);
@@ -161,7 +158,6 @@ router.get("/profile/:username/posts", authenticateToken, async (req, res) => {
   }
 });
 
-// --- Registration ---
 router.post("/check-availability", async (req, res) => {
   try {
     const result = await checkAvailability(req.body.identifier);
@@ -208,7 +204,6 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// --- Password Reset ---
 router.post("/send-reset-otp", async (req, res) => {
   try {
     const result = await sendOTP(req.body.identifier);

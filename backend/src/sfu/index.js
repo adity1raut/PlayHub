@@ -81,8 +81,6 @@ export async function initSfu(socketServer, { onBroadcastStart, onViewersChange 
   console.log(`SFU ready — media on ${sfuConfig.announcedIp}:${sfuConfig.port} (udp/tcp)`);
 }
 
-/* ------------------------------------------------------------------ rooms --- */
-
 async function getRoom(streamId, { create = false } = {}) {
   let room = rooms.get(streamId);
   if (room || !create) return room;
@@ -202,8 +200,6 @@ function producerInfo({ producer, source, userId, role, user }) {
   return { producerId: producer.id, kind: producer.kind, source, paused: producer.paused, userId, role, user };
 }
 
-/* ------------------------------------------------------------------ stage --- */
-
 const peersOfUser = (room, userId) => [...room.peers.values()].filter((p) => p.userId === String(userId));
 const emitToUser = (room, userId, event, payload) =>
   peersOfUser(room, userId).forEach((p) => p.socket.emit(event, payload));
@@ -307,8 +303,6 @@ export function closeRoom(streamId, reason = "Stream has ended") {
   }
   io?.to(roomName(id)).emit("sfu:room-closed", { streamId: id, reason });
 }
-
-/* -------------------------------------------------------------- signaling --- */
 
 export function registerSfuHandlers(socket) {
   // Every handler answers through the ack callback: { ...data } or { error }
@@ -522,8 +516,6 @@ export function registerSfuHandlers(socket) {
     if (!transport) throw new Error("Transport not found");
     return { iceParameters: await transport.restartIce() };
   });
-
-  /* ---------------------------------------------------------------- stage --- */
 
   on("stage:state", async ({ streamId }) => stageState(requireRoom(streamId), socket.userId));
 

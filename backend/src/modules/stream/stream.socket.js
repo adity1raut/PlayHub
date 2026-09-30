@@ -42,8 +42,6 @@ async function loadStream(streamId) {
 const activeMute = (stream, userId) =>
   (stream.chatMutes || []).find((m) => String(m.user) === String(userId) && new Date(m.until) > new Date());
 
-/* ---------------------------------------------------------------- live stats --- */
-
 const statsTimers = new Map(); // streamId → pending timer
 
 /**
@@ -101,8 +99,6 @@ export async function recordViewers(streamId, { count, userIds }) {
   }
 }
 
-/* ---------------------------------------------------------------------- chat --- */
-
 const lastChatAt = new Map(); // `${streamId}:${userId}` → ms, for slow mode
 
 /** Forget per-stream chat state once a stream ends. */
@@ -152,8 +148,6 @@ export async function postStreamChat(userId, streamId, rawMessage) {
   queueStreamStats(streamId);
   return saved;
 }
-
-/* ------------------------------------------------------------------ handlers --- */
 
 export function registerStreamHandlers(socket) {
   const me = String(socket.userId);

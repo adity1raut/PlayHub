@@ -1,23 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   ArrowLeft,
   Check,
   CircleCheck,
   CreditCard,
-  Heart,
+  FlaskConical,
   ImageOff,
   LocateFixed,
   MapPin,
   Package,
   Pencil,
   Plus,
+  ReceiptText,
   ShieldCheck,
   ShoppingCart,
   Trash2,
 } from "lucide-react";
 import { useProduct } from "../../../context/ProductContext";
-import { mediaUrl } from "../../../lib/config";
+import { API_URL, mediaUrl } from "../../../lib/config";
 import { toast } from "../../../lib/toast";
 import { cn } from "../../../lib/cn";
 import {
@@ -50,6 +52,51 @@ const EMPTY_ADDRESS = {
 
 // Razorpay's modal needs a hex colour; this is the light-theme primary teal (readable with white text).
 const RAZORPAY_THEME = { color: "#167a5c" };
+
+const TEST_CARDS_URL = "https://razorpay.com/docs/payments/payments/test-card-details/";
+
+/** GET /api/stores/order/payment-config → { enabled, mode: "test" | "live" | null } */
+function usePaymentConfig() {
+  const [config, setConfig] = useState(null);
+  useEffect(() => {
+    let ignore = false;
+    axios
+      .get(`${API_URL}/api/stores/order/payment-config`)
+      .then((res) => !ignore && setConfig(res.data?.data ?? null))
+      .catch(() => !ignore && setConfig({ enabled: true, mode: null })); // unknown: let the server decide on pay
+    return () => {
+      ignore = true;
+    };
+  }, []);
+  return config;
+}
+
+/** How to make a dummy payment in Razorpay's test mode (no real money moves). */
+function TestModeGuide() {
+  return (
+    <Alert variant="warning" title="Test mode — dummy payment">
+      <p>No real money moves. In the Razorpay window, pay with any of these:</p>
+      <ul className="mt-2 space-y-1.5">
+        <li>
+          <span className="font-bold text-foreground">UPI</span> — enter{" "}
+          <code className="border border-border bg-background/60 px-1 text-foreground">success@razorpay</code> (or{" "}
+          <code className="border border-border bg-background/60 px-1 text-foreground">failure@razorpay</code> to see a
+          failed payment)
+        </li>
+        <li>
+          <span className="font-bold text-foreground">Netbanking</span> — pick any bank, then press Success
+        </li>
+        <li>
+          <span className="font-bold text-foreground">Card</span> — a{" "}
+          <a href={TEST_CARDS_URL} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">
+            Razorpay test card
+          </a>
+          , any future expiry, any CVV
+        </li>
+      </ul>
+    </Alert>
+  );
+}
 
 const STEPS = [
   { n: "01", label: "Address" },
@@ -130,23 +177,23 @@ export function Checkout() {
   const [savingLocation, setSavingLocation] = useState(false);
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const payConfig = usePaymentConfig();
+  const testMode = payConfig?.mode === "test";
+  const paymentsOff = payConfig ? !payConfig.enabled : false;
 
   // Mongo _id of the placed order (from /order/verify). A ref so the delayed
   // location capture after payment sees it (the Razorpay handler closure is stale).
   const placedOrderIdRef = useRef(null);
 
-  // Address form states
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS);
 
-  // Load addresses when component mounts
   useEffect(() => {
     getUserAddresses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-select first address if available
   useEffect(() => {
     if (addresses.length > 0 && !selectedAddress) {
       setSelectedAddress(addresses[0]._id);
@@ -190,7 +237,6 @@ export function Checkout() {
     const result = await deleteAddress(addressId);
     if (result.success) {
       toast.success(result.message || "Address deleted");
-      // Clear selected address if it was deleted
       if (selectedAddress === addressId) setSelectedAddress("");
     } else {
       toast.error(result.message);
@@ -222,7 +268,6 @@ export function Checkout() {
     if (result.success) {
       toast.success(result.message || "Address saved");
       resetAddressForm();
-      // Auto-select the new/updated address
       if (result.data?.address?._id) setSelectedAddress(result.data.address._id);
       else if (result.data?.addressId) setSelectedAddress(result.data.addressId);
     } else {
@@ -251,7 +296,6 @@ export function Checkout() {
     }
   };
 
-  // Get user's current location
   const getCurrentLocation = () => {
     setGettingLocation(true);
 
@@ -322,7 +366,6 @@ export function Checkout() {
           setOrderData(result.data);
           setPaymentStep("success");
 
-          // Automatically get location after successful payment
           toast.success("Payment successful! Getting your location…");
           setTimeout(() => getCurrentLocation(), 1000);
         } else {
@@ -360,7 +403,6 @@ export function Checkout() {
       return;
     }
 
-    // Check if cart is empty
     if (!cart.items || cart.items.length === 0) {
       toast.error("Your cart is empty");
       navigate("/cart");
@@ -396,7 +438,6 @@ export function Checkout() {
   const busy = paying || orderLoading;
   const currentStep = !selectedAddress ? 0 : busy ? 2 : 1;
 
-  /* ---------------------------------------------------------------- success */
   if (paymentStep === "success") {
     const orderRef = orderData?.orderNumber || orderData?.orderId;
     return (
@@ -422,6 +463,11 @@ export function Checkout() {
 
           <dl className="space-y-2 border-b border-border px-6 py-5 text-[11px]">
             <LeaderRow label="payment id">{orderData?.paymentId || "—"}</LeaderRow>
+            {orderData?.mode === "test" && (
+              <LeaderRow label="payment">
+                <span className="font-bold text-warning uppercase">Test — no real money</span>
+              </LeaderRow>
+            )}
             <LeaderRow label="amount">{formatAmount(Number(orderData?.amount) || 0)}</LeaderRow>
             <LeaderRow label="status">
               <span className="font-bold text-success uppercase">{orderData?.orderStatus || "confirmed"}</span>
@@ -433,7 +479,6 @@ export function Checkout() {
             )}
           </dl>
 
-          {/* Delivery location */}
           <div className="space-y-3 border-b border-border px-6 py-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-sm font-bold tracking-[0.14em] uppercase">
@@ -472,8 +517,8 @@ export function Checkout() {
             <Button as={Link} to="/products" variant="solid" icon={Package} className="flex-1">
               Continue shopping
             </Button>
-            <Button as={Link} to="/wishlist" variant="outline" icon={Heart} className="flex-1">
-              View wishlist
+            <Button as={Link} to="/orders" variant="outline" icon={ReceiptText} className="flex-1">
+              My orders
             </Button>
           </div>
         </Card>
@@ -481,7 +526,6 @@ export function Checkout() {
     );
   }
 
-  /* --------------------------------------------------------------- checkout */
   return (
     <Page>
       <PageHeader
@@ -505,7 +549,6 @@ export function Checkout() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="min-w-0 space-y-6">
-          {/* 01 — Address */}
           <Card>
             <CardBar
               title="01 / Delivery address"
@@ -592,7 +635,6 @@ export function Checkout() {
             </div>
           </Card>
 
-          {/* 02 — Review */}
           <Card>
             <CardBar
               title="02 / Review items"
@@ -651,9 +693,21 @@ export function Checkout() {
           </Card>
         </div>
 
-        {/* 03 — Pay */}
         <Card corners className="lg:sticky lg:top-6">
-          <CardBar title="03 / Payment" right={<Badge variant="info" icon={ShieldCheck}>Razorpay</Badge>} />
+          <CardBar
+            title="03 / Payment"
+            right={
+              testMode ? (
+                <Badge variant="warning" icon={FlaskConical}>
+                  Test mode
+                </Badge>
+              ) : (
+                <Badge variant="info" icon={ShieldCheck}>
+                  Razorpay
+                </Badge>
+              )
+            }
+          />
           <dl className="space-y-2 px-5 py-4 text-[11px]">
             <LeaderRow label={`Items (${itemCount})`}>{formatAmount(total)}</LeaderRow>
             <LeaderRow label="Delivery">
@@ -665,6 +719,12 @@ export function Checkout() {
             <span className="text-2xl font-extrabold text-primary tabular-nums">{formatAmount(total)}</span>
           </div>
           <div className="space-y-3 border-t border-border p-5">
+            {testMode && <TestModeGuide />}
+            {paymentsOff && (
+              <Alert variant="warning" title="Payments are off">
+                Payments aren&apos;t set up on this server yet, so checkout is paused. Your cart is saved.
+              </Alert>
+            )}
             <div className="flex flex-wrap gap-1.5">
               {["Cards", "UPI", "Net banking", "Wallets"].map((m) => (
                 <Badge key={m} variant="secondary">
@@ -679,9 +739,9 @@ export function Checkout() {
               icon={CreditCard}
               loading={busy}
               onClick={proceedToPayment}
-              disabled={!selectedAddress || busy || items.length === 0}
+              disabled={!selectedAddress || busy || items.length === 0 || paymentsOff}
             >
-              {busy ? "Processing" : `Pay ${formatAmount(total)}`}
+              {busy ? "Processing" : `Pay ${formatAmount(total)}${testMode ? " (test)" : ""}`}
             </Button>
             {!selectedAddress && (
               <p className="text-[11px] text-warning">Select a delivery address to continue.</p>
@@ -694,7 +754,6 @@ export function Checkout() {
         </Card>
       </div>
 
-      {/* Address form */}
       <Modal
         open={showAddressForm}
         onClose={resetAddressForm}

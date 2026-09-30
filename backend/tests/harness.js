@@ -142,6 +142,8 @@ export function createHarness(suffix) {
         Store: (await import("../src/modules/store/store.model.js")).default,
         Product: (await import("../src/modules/store/product.model.js")).default,
         Cart: (await import("../src/modules/store/cart.model.js")).default,
+        Payment: (await import("../src/modules/store/payment.model.js")).default,
+        Order: (await import("../src/modules/store/order.model.js")).default,
         Notification: (await import("../src/modules/notifications/notification.model.js")).default,
       });
 

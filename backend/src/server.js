@@ -10,11 +10,14 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import setupSocketHandlers from "./socket/socket.handlers.js";
 import { verifyMailer } from "./config/nodemailer.js";
+import { logPaymentMode } from "./config/razorpay.js";
+import { checkEnv } from "./config/env.js";
 import { initSfu } from "./sfu/index.js";
 import { announceStreamLive } from "./modules/stream/stream.controller.js";
 import { recordViewers } from "./modules/stream/stream.socket.js";
 
 env.config();
+checkEnv();
 
 const app = express();
 
@@ -58,7 +61,6 @@ app.get("/api/health", (req, res) => {
 
 app.use(router);
 
-// JSON 404 for unknown API routes
 app.use("/api", (req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.method} ${req.originalUrl} not found` });
 });
@@ -68,7 +70,10 @@ app.use((err, req, res, next) => {
   if (res.headersSent) return next(err);
   const status = err.status || (err.name === "MulterError" ? 400 : 500);
   if (status >= 500) console.error(err);
-  res.status(status).json({ success: false, message: err.message || "Internal server error" });
+  // Don't leak internal error details to clients in production
+  const hideDetails = status >= 500 && process.env.NODE_ENV === "production";
+  const message = hideDetails ? "Internal server error" : err.message || "Internal server error";
+  res.status(status).json({ success: false, message });
 });
 
 const server = createServer(app);
@@ -104,5 +109,6 @@ connectDB().then(() => {
     console.log(`Server is running on port ${PORT}`);
     console.log(`CORS origins allowed: ${allowedOrigins.join(", ")}`);
     verifyMailer();
+    logPaymentMode();
   });
 });

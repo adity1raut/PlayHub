@@ -139,8 +139,6 @@ const StreamChat = ({ streamId, messages = [], isLive = true, hostId, slowMode: 
     });
   }, []);
 
-  /* ---------- realtime ---------- */
-
   const forThisStream = (payload) => payload && sameId(payload.streamId, streamId);
 
   useSocketEvent("new-stream-message", (payload) => {
@@ -173,8 +171,6 @@ const StreamChat = ({ streamId, messages = [], isLive = true, hostId, slowMode: 
     setSlowMode(payload.chatSlowMode);
     addNotice(payload.chatSlowMode ? `Slow mode on: one message every ${payload.chatSlowMode}s` : "Slow mode off");
   });
-
-  /* ---------- sending ---------- */
 
   const handleSendError = (error, text) => {
     if (error.code === "CHAT_MUTED" && error.until) {
@@ -232,8 +228,6 @@ const StreamChat = ({ streamId, messages = [], isLive = true, hostId, slowMode: 
       inputRef.current?.focus();
     }
   };
-
-  /* ---------- moderation ---------- */
 
   const moderate = async (event, data, success) => {
     setMenuFor(null);
@@ -294,7 +288,6 @@ const StreamChat = ({ streamId, messages = [], isLive = true, hostId, slowMode: 
         }
       />
 
-      {/* Messages */}
       <div ref={listRef} role="log" aria-live="polite" className="min-h-0 flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
         {chatMessages.length === 0 ? (
           <EmptyState
@@ -405,7 +398,6 @@ const StreamChat = ({ streamId, messages = [], isLive = true, hostId, slowMode: 
         )}
       </div>
 
-      {/* Composer */}
       <div className="border-t border-border p-3">
         {disabledHint ? (
           <p className="border border-dashed border-border-strong px-3 py-3 text-center text-[11px] text-faint">

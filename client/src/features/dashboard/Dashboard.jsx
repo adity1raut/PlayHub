@@ -181,7 +181,6 @@ function Home() {
     );
   };
 
-  // ── Realtime: live streams ──────────────────────────────────────────────
   useSocketEvent(
     "stream:started",
     ({ stream } = {}) => {
@@ -209,7 +208,6 @@ function Home() {
     );
   });
 
-  // ── Realtime: follower / following tiles (counts come from the event) ───
   useSocketEvent("follow:updated", (e = {}) => {
     if (!userId) return;
     setFollowCounts((prev) => {
@@ -224,7 +222,6 @@ function Home() {
     });
   });
 
-  // ── Realtime: recent posts + the Posts tile ─────────────────────────────
   const userPostIds = useMemo(() => new Set((user?.posts || []).map(idOf)), [user?.posts]);
 
   useSocketEvent("post:created", ({ post } = {}) => {

@@ -244,7 +244,6 @@ function StoreDetail({ store: initialStore, onBack }) {
         </Button>
       </div>
 
-      {/* Store header */}
       <Card corners>
         <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:p-6">
           {store.logo ? (
@@ -315,7 +314,6 @@ function StoreDetail({ store: initialStore, onBack }) {
         </dl>
       </Card>
 
-      {/* Products */}
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="eyebrow text-faint">
@@ -421,7 +419,6 @@ function StoreDetail({ store: initialStore, onBack }) {
               })}
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <nav aria-label="Pagination" className="flex items-center justify-between gap-3 pt-2">
                 <Button

@@ -1,0 +1,5 @@
+# HTTPS in front of the web container. Caddy gets and renews the certificate for {$DOMAIN}.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy web:80
+}

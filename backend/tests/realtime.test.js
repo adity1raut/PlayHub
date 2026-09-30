@@ -56,6 +56,7 @@ before(async () => {
     Store: (await import("../src/modules/store/store.model.js")).default,
     Product: (await import("../src/modules/store/product.model.js")).default,
     Notification: (await import("../src/modules/notifications/notification.model.js")).default,
+    Payment: (await import("../src/modules/store/payment.model.js")).default,
   };
 
   await mongoose.connect(DB);
@@ -217,6 +218,9 @@ test("paid orders notify the seller (live) and confirm to the buyer", { skip }, 
   const addressId = String(buyer.addresses.at(-1)._id);
   const [orderId, paymentId] = ["order_ci_1", "pay_ci_1"];
   const signature = crypto.createHmac("sha256", RZP_SECRET).update(`${orderId}|${paymentId}`).digest("hex");
+  // What POST /order/create records alongside the Razorpay order (that call needs the real Razorpay API)
+  const cart = await api("bob", "GET", "/api/stores/cart");
+  await models.Payment.create({ user: bob._id, razorpayOrderId: orderId, amount: Math.round(cart.totalAmount * 100), addressId, mode: "test" });
 
   const res = await api("bob", "POST", "/api/stores/order/verify", {
     razorpay_order_id: orderId,
@@ -253,7 +257,6 @@ test("post deletion broadcasts with the author id", { skip }, async () => {
   assert.equal(seen("bob", "post:deleted", (p) => p.postId === postId && p.authorId === String(alice._id)).length, 1);
 });
 
-// --- Friends, chat and settings ---
 // State so far: bob follows alice (re-followed via her store), alice doesn't follow bob.
 
 const postFile = (who, route, fields, file) => {

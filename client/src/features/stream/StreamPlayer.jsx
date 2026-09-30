@@ -245,7 +245,6 @@ const StreamPlayer = ({
         <Corners size="size-4" />
       </div>
 
-      {/* States */}
       {live && status === "connecting" && (
         <Overlay>
           <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
@@ -316,7 +315,6 @@ const StreamPlayer = ({
         <StatsPanel stats={stats} mode="viewer" layerLabel={layerLabel} onClose={() => setShowStats(false)} />
       )}
 
-      {/* Top HUD */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-4 sm:p-5">
         {live ? (
           <span className="flex flex-wrap items-center gap-2">
@@ -357,7 +355,6 @@ const StreamPlayer = ({
         </span>
       </div>
 
-      {/* Controls */}
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 border-t border-border bg-card/90 px-2 py-1.5">
         <div className="flex min-w-0 items-center gap-1">
           <IconButton

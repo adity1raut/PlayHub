@@ -58,7 +58,8 @@ Spawnpoint is a full-stack social and e-commerce platform for gamers: real-time 
 - Open a store with a logo, and add products with up to 5 images
 - Browse, search and filter products; trending products
 - Wishlist, cart, saved delivery addresses
-- Checkout with **Razorpay**
+- Checkout with **Razorpay**, including **test mode for dummy payments** (no real money). Checkout shows how to pay with test UPI, netbanking or cards
+- **My orders** page with each order's status, items and Razorpay payment ID. Test payments are marked
 - Ratings and reviews
 - Store analytics, and instant alerts to sellers when an order comes in
 - Follow stores
@@ -106,12 +107,19 @@ npm run dev              # API on http://localhost:4000
 
 ```bash
 cd client
-echo 'VITE_BACKEND_URL="http://localhost:4000"' > .env
+cp .env.example .env    # VITE_BACKEND_URL=http://localhost:4000
 npm install
 npm run dev              # app on http://localhost:5173
 ```
 
 Open http://localhost:5173, create an account, and you're in.
+
+
+### Dummy payments (Razorpay test mode)
+
+1. Sign in at [dashboard.razorpay.com](https://dashboard.razorpay.com). Switch to **Test Mode**, then go to **Account & Settings → API Keys → Generate Test Key**.
+2. Put both keys in `backend/.env`: `RAZORPAY_KEY_ID=rzp_test_…` and `RAZORPAY_KEY_SECRET=…`. Restart the backend; it logs `Payments: Razorpay TEST mode`.
+3. At checkout, pay with UPI `success@razorpay` (or `failure@razorpay` to try a failed payment). You can also use netbanking (any bank, then **Success**) or a [Razorpay test card](https://razorpay.com/docs/payments/payments/test-card-details/). No real money moves.
 
 ## Configuration
 
@@ -125,7 +133,7 @@ Open http://localhost:5173, create an account, and you're in.
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | yes | Image and video uploads |
 | `MEDIA_STORAGE` | no | `local` stores chat attachments in `backend/uploads/chat` instead of Cloudinary (used by the tests) |
 | `MAIL_SERVICE`, `MAIL_USER`, `MAIL_PASS` | yes | Email for verification codes (`gmail` + a Gmail App Password) |
-| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | yes | Payments |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | yes | Payments. Keys starting `rzp_test_` give test mode (dummy payments); `rzp_live_` takes real money. With missing or placeholder keys, checkout is switched off and the server log says how to fix it |
 | `PORT` | no | API port (default `4000`) |
 | `NODE_ENV` | no | `development` locally, `production` when deployed |
 | `COOKIE_SAMESITE`, `COOKIE_SECURE` | no | Cookie policy; set `COOKIE_SAMESITE=none` when the frontend and API are on different domains |
@@ -163,13 +171,46 @@ Open http://localhost:5173, create an account, and you're in.
 **GitHub Actions** (`.github/workflows/ci.yml`) runs on every push and on pull requests to `main`:
 - **Client:** install, lint, build
 - **Backend:** install, syntax check, and all tests against a MongoDB service container
+- **Docker:** builds the backend and web images
 
-## Deployment notes
+## Deployment
 
-- Serve the app over **HTTPS**. Going live (camera/mic) and push notifications need it.
-- Open the live-video port (`SFU_PORT`, default `44444`, UDP and TCP) and set `SFU_ANNOUNCED_IP` to the server's public IP.
-- Hosting the frontend and API on different domains? Set `VITE_BACKEND_URL` to the API URL, and `CLIENT_URL` + `COOKIE_SAMESITE=none` on the backend.
-- Set fixed `VAPID_*` keys in production so phones stay subscribed across deploys.
+Serve the app over **HTTPS**: going live (camera/mic) and push notifications need it.
+
+### Option A: one server with Docker Compose (recommended)
+
+Runs everything on one Linux server with Docker. nginx serves the app and forwards `/api`, `/socket.io` and `/uploads` to the backend, so the browser sees a single origin. Live video goes straight to the backend on port `44444`.
+
+1. Point your domain's DNS at the server. Open ports **80** and **443** (TCP), and **44444** (UDP and TCP).
+2. Create `backend/.env` from `backend/.env.example` and set at least:
+
+   | Variable | Value |
+   | --- | --- |
+   | `NODE_ENV` | `production` |
+   | `MONGODB_URI` | your MongoDB Atlas connection string (allow the server's IP in Atlas → Network Access) |
+   | `JWT_SECRET` | output of `openssl rand -hex 32` |
+   | `CLIENT_URL` | `https://your-domain.com` |
+   | `SFU_ANNOUNCED_IP` | the server's public IP |
+   | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | output of `npx web-push generate-vapid-keys` |
+
+   Plus your Cloudinary, mail and Razorpay keys.
+3. Start it:
+
+   ```bash
+   DOMAIN=your-domain.com docker compose --profile https up -d --build
+   ```
+
+   Caddy gets and renews the HTTPS certificate automatically. Without `--profile https`, the app listens on `http://<server>:8080` (set `WEB_PORT` to change it) so you can put your own HTTPS proxy in front.
+
+To update, run `git pull` and the same command again. Watch the logs with `docker compose logs -f backend`. Uploaded files and generated keys live in the `backend-data` and `backend-uploads` Docker volumes, so they survive rebuilds.
+
+### Option B: frontend and API on separate hosts
+
+- **Frontend** (e.g. Vercel): project root `client`, build command `npm run build`, output directory `dist`, and the environment variable `VITE_BACKEND_URL=https://api.your-domain.com`. `client/vercel.json` sends every page route to the app. On other static hosts, add a rewrite from all paths to `/index.html`.
+- **Backend**: any host that runs Docker (`backend/Dockerfile`) or Node.js 22 (`npm ci --omit=dev && npm start`). Set `CLIENT_URL` to the frontend's URL and `COOKIE_SAMESITE=none`. Both sites must use HTTPS.
+- **Live video** needs the backend host to accept UDP/TCP traffic on `SFU_PORT` directly. Platforms that only route HTTP (such as Render or Heroku) can't carry it, so run the backend on a VPS if you need streaming.
+
+Before going live with real payments, switch to Razorpay **live** keys (`rzp_live_…`).
 
 ## Project structure
 
@@ -186,6 +227,9 @@ client/src/
   context/ lib/ routes/     app state, helpers, route guards
   features/                 landing · auth · dashboard · chat · posts · profile ·
                             notifications · search · stream · store
+client/nginx.conf           serves the built app in Docker, proxies the API
+backend/Dockerfile, client/Dockerfile
+docker-compose.yml          one-server deployment (deploy/Caddyfile for HTTPS)
 .github/workflows/ci.yml    CI pipeline
 docs/ARCHITECTURE.md        how the pieces connect (for developers)
 ```

@@ -53,8 +53,6 @@ export function StoreProvider({ children }) {
     }
   };
 
-  // Convert image file to base64
-
   const createStore = async (storeData) => {
     try {
       setLoading(true);
@@ -176,7 +174,6 @@ export function StoreProvider({ children }) {
     }
   };
 
-  // Store Analytics
   const getStoreAnalytics = async (storeId) => {
     if (!isAuthenticated) {
       return { success: false, message: "Authentication required" };
@@ -199,7 +196,6 @@ export function StoreProvider({ children }) {
     }
   };
 
-  // Store Social Features
   const followStore = async (storeId) => {
     if (!isAuthenticated) {
       return { success: false, message: "Authentication required" };
@@ -261,7 +257,6 @@ export function StoreProvider({ children }) {
     }
   };
 
-  // Search Functions
   const searchProducts = async (params = {}) => {
     try {
       const res = await axios.get(`${backendUrl}/api/stores/search/products`, {
@@ -291,10 +286,9 @@ export function StoreProvider({ children }) {
     }
   };
 
-  // Error Management
   const clearError = () => setError(null);
 
-  // ── Realtime: storefronts and their product counts (store lists, filters, MyStore) ──
+  // Realtime: storefronts and their product counts (store lists, filters, MyStore)
   const patchStore = (storeId, fn) => {
     const id = String(storeId);
     setStores((prev) => (prev.some((s) => idOf(s) === id) ? prev.map((s) => (idOf(s) === id ? fn(s) : s)) : prev));
@@ -345,14 +339,12 @@ export function StoreProvider({ children }) {
   return (
     <StoreContext.Provider
       value={{
-        // State
         stores,
         userStore,
         loading,
         error,
         followedStores,
 
-        // Store Management
         getAllStores,
         getStoreById,
         createStore,
@@ -362,22 +354,17 @@ export function StoreProvider({ children }) {
         getUserStore,
         getStoreProducts,
 
-        // Store Analytics
         getStoreAnalytics,
 
-        // Store Social Features
         followStore,
         getFollowStatus,
         getFollowingStores,
 
-        // Search Functions
         searchProducts,
         getTrendingProducts,
 
-        // Error Management
         clearError,
 
-        // State Setters
         setStores,
         setUserStore,
       }}

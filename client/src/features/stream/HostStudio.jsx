@@ -166,7 +166,6 @@ export default function HostStudio({ broadcast: b, onViewers, onEnd, ending = fa
         {showStats && onAir && <StatsPanel stats={stats} mode="host" onClose={() => setShowStats(false)} />}
       </div>
 
-      {/* Control deck */}
       <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-card px-3 py-2">
         <div className="flex flex-wrap items-center gap-1.5">
           <IconButton

@@ -64,7 +64,6 @@ const CreatePost = ({ onPostCreated }) => {
 
     setIsSubmitting(true);
     try {
-      // POST /api/posts/create — multipart: "content" + optional file field "media"
       const formData = new FormData();
       formData.append("content", content.trim());
       if (selectedFile) formData.append("media", selectedFile);

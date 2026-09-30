@@ -226,7 +226,6 @@ export default function AddProduct() {
             />
           </div>
 
-          {/* Images */}
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label htmlFor={inputId} className="eyebrow text-muted-foreground">

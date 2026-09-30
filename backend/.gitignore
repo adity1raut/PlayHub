@@ -53,3 +53,10 @@ temp/
 
 # Chat attachments stored locally (MEDIA_STORAGE=local) are private user files
 uploads/chat/
+
+# Generated VAPID key pair (push notifications). Contains a private key.
+data/
+
+# Uploaded files are runtime data, not source
+uploads/*
+!uploads/.gitkeep

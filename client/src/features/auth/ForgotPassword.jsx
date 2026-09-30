@@ -96,7 +96,6 @@ const ForgetPassword = () => {
 
   const identifier = formData.identifier.trim();
 
-  // POST /api/auth/send-reset-otp { identifier }
   const sendOTP = async (e) => {
     e?.preventDefault();
     if (!identifier) {
@@ -122,7 +121,6 @@ const ForgetPassword = () => {
     }
   };
 
-  // POST /api/auth/resend-reset-otp { identifier }
   const resendOTP = async () => {
     setLoading("resendOTP", true);
     setError(null);
@@ -142,7 +140,6 @@ const ForgetPassword = () => {
     }
   };
 
-  // POST /api/auth/verify-reset-otp { identifier, otp }
   const verifyOTP = async (e, codeArg) => {
     e?.preventDefault?.();
     const code = codeArg ?? formData.otp;
@@ -170,7 +167,6 @@ const ForgetPassword = () => {
     }
   };
 
-  // POST /api/auth/reset-password { identifier, newPassword }
   const resetPassword = async (e) => {
     e?.preventDefault();
     if (!formData.newPassword) {

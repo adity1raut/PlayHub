@@ -56,7 +56,6 @@ const setupSocketHandlers = (io) => {
       registerStreamHandlers(socket); // stream chat, reactions, moderation
 
       (async () => {
-        // Join every conversation room this user belongs to
         const conversations = await Conversation.find({ members: socket.userId }).select("_id").lean();
         conversations.forEach((conv) => socket.join(conv._id.toString()));
 

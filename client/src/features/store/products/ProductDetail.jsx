@@ -108,7 +108,6 @@ export default function ProductDetail() {
   const [addingToCart, setAddingToCart] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
-  // Edit mode states
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ name: "", description: "", price: "", stock: "" });
   const [newImages, setNewImages] = useState([]);
@@ -118,12 +117,10 @@ export default function ProductDetail() {
   const storeId = idOf(product?.store);
   const storeName = product?.store?.name;
 
-  // Check if current user owns this product
   const isProductOwner = Boolean(isAuthenticated && userStore && product && storeId === userStore._id);
 
   const [inWishlist, setInWishlist] = useState(false);
 
-  // Update inWishlist state when product changes
   useEffect(() => {
     if (!product) return;
     if (product.inWishlist !== undefined) setInWishlist(product.inWishlist);
@@ -219,7 +216,6 @@ export default function ProductDetail() {
 
   const handleEditToggle = () => {
     if (isEditing) {
-      // Cancel editing - reset states
       setEditData({
         name: product.name || "",
         description: product.description || "",
@@ -270,7 +266,6 @@ export default function ProductDetail() {
       formData.append("price", parseFloat(editData.price));
       formData.append("stock", parseInt(editData.stock));
 
-      // Add new images
       newImages.forEach((image) => formData.append("images", image));
 
       // Images to remove — "removeImages[]" so multer parses it as an array
@@ -452,7 +447,6 @@ export default function ProductDetail() {
 
   return (
     <Page wide>
-      {/* Breadcrumb + owner actions */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-[11px] text-faint">
           <Button variant="ghost" size="sm" icon={ArrowLeft} onClick={() => navigate(-1)}>
@@ -492,7 +486,6 @@ export default function ProductDetail() {
       </div>
 
       <div className="grid items-start gap-8 lg:grid-cols-[1.1fr_1fr]">
-        {/* Gallery */}
         <div className="min-w-0 space-y-3">
           <div className="relative aspect-square border border-border bg-muted">
             <Corners />
@@ -527,7 +520,6 @@ export default function ProductDetail() {
             )}
           </div>
 
-          {/* Image thumbnails */}
           {displayImages.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
               {displayImages.map((image, index) => {
@@ -551,7 +543,6 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {/* New images preview and add button for editing */}
           {isEditing && (
             <div className="space-y-3 border border-dashed border-border-strong p-4">
               <p className="eyebrow text-faint">New images</p>
@@ -587,7 +578,6 @@ export default function ProductDetail() {
           )}
         </div>
 
-        {/* Details / edit form */}
         <div className="min-w-0">
           {isEditing ? (
             <Card corners>
@@ -688,7 +678,6 @@ export default function ProductDetail() {
                 </Alert>
               ) : (
                 <div className="space-y-4">
-                  {/* Quantity Selector - only show if stock available */}
                   {stock > 0 && (
                     <div>
                       <p className="eyebrow mb-2 text-muted-foreground">Quantity</p>
@@ -761,7 +750,6 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      {/* Specs + reviews */}
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_1.2fr]">
         <Card>
           <CardBar title="Specifications" />
@@ -793,7 +781,6 @@ export default function ProductDetail() {
             }
           />
 
-          {/* Submit Rating Form */}
           {isAuthenticated && !isProductOwner && (
             <form onSubmit={handleSubmitRating} className="space-y-4 border-b border-border px-5 py-5">
               <div>
@@ -833,7 +820,6 @@ export default function ProductDetail() {
             </form>
           )}
 
-          {/* List of Reviews */}
           {reviews.length > 0 ? (
             <ul className="divide-y divide-border">
               {reviews.map((r, idx) => {

@@ -36,7 +36,6 @@ export function ProductProvider({ children }) {
   const [cartLoading, setCartLoading] = useState(false);
   const [addressLoading, setAddressLoading] = useState(false);
 
-  // Product Management
   const getAllProducts = async (params = {}) => {
     setLoading(true);
     try {
@@ -149,7 +148,6 @@ export function ProductProvider({ children }) {
     }
   };
 
-  // Search and Discovery
   const searchProducts = async (params = {}) => {
     setSearchLoading(true);
     try {
@@ -184,7 +182,6 @@ export function ProductProvider({ children }) {
     }
   };
 
-  // Wishlist Management
   const toggleWishlist = async (productId) => {
     try {
       const res = await axios.post(
@@ -194,7 +191,7 @@ export function ProductProvider({ children }) {
       );
 
       // The backend returns only a message and inWishlist, so we need to refetch the wishlist
-      await getUserWishlist(); // Refresh wishlist after toggle
+      await getUserWishlist();
 
       return {
         success: true,
@@ -226,7 +223,6 @@ export function ProductProvider({ children }) {
     }
   };
 
-  // Address Management
   const getUserAddresses = async () => {
     if (!isAuthenticated) {
       setAddresses([]);
@@ -270,7 +266,6 @@ export function ProductProvider({ children }) {
         },
       );
 
-      // Update local addresses state
       await getUserAddresses();
 
       return {
@@ -302,7 +297,6 @@ export function ProductProvider({ children }) {
         { withCredentials: true },
       );
 
-      // Update local addresses state
       await getUserAddresses();
 
       return {
@@ -335,7 +329,6 @@ export function ProductProvider({ children }) {
         },
       );
 
-      // Update local addresses state
       setAddresses(res.data.data.remainingAddresses || []);
 
       return {
@@ -354,7 +347,6 @@ export function ProductProvider({ children }) {
     }
   };
 
-  // Order Management (Updated)
   const createOrder = async (addressId, newAddress = null) => {
     if (!isAuthenticated) {
       return { success: false, message: "Please login to create order" };
@@ -402,7 +394,6 @@ export function ProductProvider({ children }) {
         },
       );
 
-      // Refresh cart after successful order
       await fetchCart();
 
       return { success: true, data: res.data.data };
@@ -437,7 +428,6 @@ export function ProductProvider({ children }) {
     }
   };
 
-  // Get order details
   const getOrderDetails = async (orderId) => {
     setLoading(true);
     try {
@@ -459,7 +449,6 @@ export function ProductProvider({ children }) {
     }
   };
 
-  // Get user's orders
   const getUserOrders = async (params = {}) => {
     setLoading(true);
     try {
@@ -486,7 +475,6 @@ export function ProductProvider({ children }) {
     }
   };
 
-  // Store Analytics
   const getStoreAnalytics = async (storeId) => {
     setLoading(true);
     try {
@@ -505,7 +493,6 @@ export function ProductProvider({ children }) {
     }
   };
 
-  // Helper function to update cart icon
   const updateCartIcon = (items) => {
     if (!Array.isArray(items)) return;
 
@@ -521,9 +508,7 @@ export function ProductProvider({ children }) {
     }
   };
 
-  // Cart Management
   const fetchCart = async () => {
-    // Early return if user is not authenticated
     if (!isAuthenticated) {
       const emptyCart = { items: [], totalAmount: 0 };
       setCart(emptyCart);
@@ -535,13 +520,12 @@ export function ProductProvider({ children }) {
     try {
       const response = await axios.get(`${backendUrl}/api/stores/cart`, {
         withCredentials: true,
-        timeout: 10000, // Add timeout for better UX
+        timeout: 10000,
       });
 
       // Backend already handles filtering null products and calculating totalAmount
       const cartData = response.data || { items: [], totalAmount: 0 };
 
-      // Ensure totalAmount is properly formatted
       const formattedCart = {
         ...cartData,
         totalAmount: Number(cartData.totalAmount || 0),
@@ -560,7 +544,6 @@ export function ProductProvider({ children }) {
     } catch (error) {
       console.error("Error fetching cart:", error);
 
-      // Handle different error scenarios
       if (error.response?.status === 401) {
         console.log("User not authenticated, clearing cart");
         const emptyCart = { items: [], totalAmount: 0 };
@@ -575,7 +558,6 @@ export function ProductProvider({ children }) {
         return cart;
       }
 
-      // For other errors, return empty cart but log for debugging
       const emptyCart = { items: [], totalAmount: 0 };
       setCart(emptyCart);
       updateCartIcon([]);
@@ -752,7 +734,6 @@ export function ProductProvider({ children }) {
     }
   };
 
-  // Helper functions (consolidated and improved)
   const getCartItemCount = () => {
     if (!cart.items || !Array.isArray(cart.items)) return 0;
     return cart.items.reduce((total, item) => {
@@ -780,7 +761,6 @@ export function ProductProvider({ children }) {
     return Number(item?.quantity) || 0;
   };
 
-  // Cart validation function
   const validateCartData = (cartData) => {
     if (!cartData || typeof cartData !== "object") {
       return { items: [], totalAmount: 0 };
@@ -802,7 +782,6 @@ export function ProductProvider({ children }) {
     }
   }, [isAuthenticated]);
 
-  // ── Realtime ──────────────────────────────────────────────────────────────
   // The cart as the server just saved it: changed in another tab, or emptied by checkout
   useSocketEvent(
     "cart:updated",
@@ -867,7 +846,6 @@ export function ProductProvider({ children }) {
   return (
     <ProductContext.Provider
       value={{
-        // State
         products,
         wishlist,
         cart,
@@ -879,7 +857,6 @@ export function ProductProvider({ children }) {
         cartLoading,
         addressLoading,
 
-        // Product Management
         getAllProducts,
         getProductById,
         addProduct,
@@ -888,21 +865,17 @@ export function ProductProvider({ children }) {
         getStoreProducts,
         addProductRating,
 
-        // Search and Discovery
         searchProducts,
         getTrendingProducts,
 
-        // Wishlist Management
         toggleWishlist,
         getUserWishlist,
 
-        // Address Management
         getUserAddresses,
         addDeliveryAddress,
         updateAddress,
         deleteAddress,
 
-        // Cart Management
         fetchCart,
         addToCart,
         updateCartItem,
@@ -913,17 +886,14 @@ export function ProductProvider({ children }) {
         getCartItemQuantity,
         validateCartData,
 
-        // Order Management
         createOrder,
         verifyPayment,
         saveOrderLocation,
         getOrderDetails,
         getUserOrders,
 
-        // Analytics
         getStoreAnalytics,
 
-        // State Setters
         setProducts,
         setWishlist,
         setCart,

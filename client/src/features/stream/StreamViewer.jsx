@@ -46,7 +46,6 @@ import { useSocketEvent } from "../../lib/useSocketEvent";
 const EMPTY = [];
 const idOf = (v) => (v && typeof v === "object" ? v._id : v);
 
-// Format duration
 const formatDuration = (start, end) => {
   if (!start) return "0m";
   const duration = end ? new Date(end) - new Date(start) : Date.now() - new Date(start);
@@ -76,7 +75,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
   const hostId = idOf(stream?.host);
   const isHost = Boolean(user?._id && hostId && String(user._id) === String(hostId));
 
-  // Fetch stream data if not provided as prop.
   // GET /api/stream/:id returns the populated stream document directly (not wrapped).
   const fetchStream = useCallback(async (sid, { silent = false } = {}) => {
     try {
@@ -108,7 +106,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
     }
   }, []);
 
-  // Initialize stream data
   useEffect(() => {
     if (initialStream) {
       setStream(initialStream);
@@ -230,7 +227,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
     }
   };
 
-  // Share stream
   const handleShare = async (platform) => {
     const streamUrl = `${window.location.origin}/stream/${stream._id}`;
     const shareText = `Check out "${stream.title}" by ${stream.host?.username}`;
@@ -264,7 +260,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
     }
   };
 
-  // Report stream
   const handleReport = () => {
     if (!isAuthenticated) {
       toast.info("Please log in to report content");
@@ -273,7 +268,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
     toast.info("Reporting isn't available yet");
   };
 
-  // Handle back navigation
   const handleBack = () => {
     if (onBack) {
       onBack();
@@ -288,7 +282,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
     </Button>
   );
 
-  // Loading state
   if (loading) {
     return (
       <Page wide>
@@ -297,7 +290,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
     );
   }
 
-  // Error state
   if (error || !stream) {
     return (
       <Page wide>
@@ -333,7 +325,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
-        {/* Left column: player + info */}
         <div className="min-w-0 space-y-6">
           {isHost && stream.isLive ? (
             <HostStudio
@@ -401,7 +392,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
                 </div>
               </div>
 
-              {/* Host row */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-y border-dashed border-border py-4">
                 <button
                   type="button"
@@ -429,7 +419,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
                 )}
               </div>
 
-              {/* Description */}
               <div>
                 <h2 className="eyebrow mb-2 text-faint">About this stream</h2>
                 <p className="text-xs leading-relaxed whitespace-pre-line text-muted-foreground sm:text-sm">
@@ -438,7 +427,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
               </div>
             </div>
 
-            {/* Stats row */}
             <dl className="grid grid-cols-2 gap-px border-t border-border bg-border sm:grid-cols-5">
               {[
                 { icon: Eye, label: stream.isLive ? "Watching" : "Viewers", value: stream.isLive ? viewerCount : uniqueViewers },
@@ -499,7 +487,6 @@ const StreamViewer = ({ stream: initialStream, onBack }) => {
           )}
         </div>
 
-        {/* Right column: chat */}
         <StreamChat
           streamId={stream._id}
           messages={stream.liveChat || EMPTY}

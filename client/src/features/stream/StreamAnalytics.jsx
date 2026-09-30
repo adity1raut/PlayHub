@@ -222,7 +222,6 @@ const StreamAnalytics = ({ streamId, isOpen, onClose }) => {
         </div>
       ) : a ? (
         <div className="space-y-6">
-          {/* Key metrics */}
           {a.isLive && (
             <p className="flex items-center gap-2 text-[11px] text-faint" role="status">
               <StatusDot tone="danger" pulse /> Live — {a.liveViewers ?? 0} watching now. These numbers update by
@@ -238,7 +237,6 @@ const StreamAnalytics = ({ streamId, isOpen, onClose }) => {
             <StatTile index="06" icon={TrendingUp} label="Engagement" value={`${engagement}%`} tone="text-warning" />
           </div>
 
-          {/* Chat activity */}
           <Card>
             <CardBar
               title="Chat activity"
@@ -287,7 +285,6 @@ const StreamAnalytics = ({ streamId, isOpen, onClose }) => {
           </Card>
 
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Status */}
             <Card>
               <CardBar title="Stream status" />
               <dl className="divide-y divide-border text-xs">
@@ -327,7 +324,6 @@ const StreamAnalytics = ({ streamId, isOpen, onClose }) => {
               </dl>
             </Card>
 
-            {/* Insights */}
             <Card>
               <CardBar title="Insights" right={<BarChart3 className="size-4 text-faint" aria-hidden="true" />} />
               <div className="space-y-4 px-5 py-4 text-xs leading-relaxed text-muted-foreground">

@@ -79,6 +79,18 @@ Friends are mutual followers. There's no separate friend request: following some
 
 `User.settings` holds `privacy.messages` (`friends` | `everyone`) and `notifications.{messages,follows,likes,comments,live,store}`. Always read it through `settingsOf()` (`backend/src/modules/auth/settings.js`), which fills defaults for older accounts. `GET/PUT /api/auth/settings` takes partial patches and rejects unknown keys. `PUT /api/auth/password` needs the current password. Settings are never included in public profiles.
 
+## Payments (Razorpay)
+
+`backend/src/config/razorpay.js` reads the mode from the keys: `rzp_test_` means test mode (dummy payments), `rzp_live_` means live, and missing or placeholder keys mean off. The client asks `GET /api/stores/order/payment-config` to show the test-mode guide, or to pause checkout.
+
+1. `POST /order/create` checks the cart and stock, creates the Razorpay order (at least ₹1), and saves a **Payment** record: buyer, amount in paise, address, mode.
+2. The buyer pays in Razorpay's window (`checkout.js`).
+3. `POST /order/verify`:
+   - checks the signature in constant time
+   - claims that buyer's Payment record atomically (`created`/`failed` → `processing`), so a double submit can't make two orders; a repeat verify returns the order already made
+   - requires the paid amount to equal the current cart total, since carts sync across tabs and can change while the Razorpay window is open; otherwise the attempt fails and no order is made
+   - creates the Order (stamped `payment.mode`), takes the stock, empties the cart, and marks the Payment `paid`
+
 ## Notifications
 
 **Desktop notifications while the app is open** (`client/src/lib/desktopNotify.js`): a notification arriving over the socket rings the OS when Spawnpoint isn't in front.

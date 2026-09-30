@@ -201,7 +201,6 @@ export default function Cart() {
 
       {safeItems.length > 0 ? (
         <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
-          {/* Line items */}
           <Card className="min-w-0">
             <CardBar
               title={`Items · ${String(safeItems.length).padStart(2, "0")}`}
@@ -295,7 +294,6 @@ export default function Cart() {
             </ul>
           </Card>
 
-          {/* Summary */}
           <Card corners className="lg:sticky lg:top-6">
             <CardBar title="Order summary" />
             <dl className="space-y-2 px-5 py-4 text-[11px]">

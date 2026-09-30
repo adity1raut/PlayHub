@@ -219,8 +219,6 @@ const ChatApplication = () => {
     navigate,
   ]);
 
-  /* ---------- composer ---------- */
-
   const sendMessage = async () => {
     const conversationId = currentId;
     const content = messageInput;

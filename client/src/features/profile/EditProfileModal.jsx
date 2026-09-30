@@ -143,7 +143,6 @@ const EditProfileModal = ({
       }
     >
       <form id={FORM_ID} onSubmit={handleUpdateProfile} className="space-y-5" noValidate>
-        {/* Cover */}
         <div>
           <Label>Cover image</Label>
           <div className="relative h-28 overflow-hidden border border-border bg-muted bg-grid sm:h-32">
@@ -179,7 +178,6 @@ const EditProfileModal = ({
           </div>
         </div>
 
-        {/* Avatar */}
         <div className="flex items-center gap-4">
           <Avatar src={profileImage || profileData.profile?.profileImage} name={displayName} size="lg" />
           <div className="min-w-0 space-y-2">

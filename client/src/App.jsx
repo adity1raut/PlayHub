@@ -28,6 +28,7 @@ import Cart from "./features/store/cart/Cart";
 import { ProductSearch } from "./features/store/products/ProductSearch";
 import { Wishlist } from "./features/store/cart/Wishlist";
 import Checkout from "./features/store/checkout/Checkout";
+import OrdersPage from "./features/store/orders/OrdersPage";
 import StreamsList from "./features/stream/StreamsList";
 import { LoadingBlock } from "./components/ui";
 
@@ -49,13 +50,11 @@ function App() {
       <Routes>
         <Route path="/" element={<RootRoute />} />
 
-        {/* Public (signed-out) routes */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><RegistrationForm /></PublicRoute>} />
         <Route path="/registration" element={<Navigate to="/signup" replace />} />
         <Route path="/forgot-password" element={<PublicRoute><ForgetPassword /></PublicRoute>} />
 
-        {/* Signed-in workspace */}
         <Route
           element={
             <ProtectedRoute>
@@ -99,6 +98,7 @@ function App() {
           <Route path="/edit-product/:productId" element={<EditProduct />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/orders" element={<OrdersPage />} />
           <Route path="/wishlist" element={<Wishlist />} />
         </Route>
 

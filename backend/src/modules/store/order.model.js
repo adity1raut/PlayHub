@@ -45,6 +45,7 @@ const paymentSchema = new mongoose.Schema({
     default: "pending",
   },
   method: { type: String, default: "razorpay" },
+  mode: { type: String, enum: ["test", "live"] }, // Razorpay test mode = dummy payment
   paidAt: { type: Date, default: Date.now },
   refundedAt: Date,
   refundAmount: { type: Number, default: 0 },

@@ -16,8 +16,6 @@ let messageListenerAttached = false;
 const messageHandlers = new Set();
 let lastKnownStatus = null;
 
-/* ---------- environment ---------- */
-
 export function isIOS() {
   if (typeof navigator === "undefined") return false;
   return (
@@ -61,8 +59,6 @@ function isWanted() {
     return false;
   }
 }
-
-/* ---------- service worker ---------- */
 
 function attachMessageListener() {
   if (messageListenerAttached || !("serviceWorker" in navigator)) return;
@@ -137,8 +133,6 @@ async function getExistingSubscription() {
   }
 }
 
-/* ---------- keys ---------- */
-
 function urlBase64ToUint8Array(base64) {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const raw = window.atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
@@ -177,8 +171,6 @@ async function ensureSubscription(reg) {
 async function saveSubscription(sub) {
   await axios.post(`${PUSH_API}/subscribe`, { subscription: sub.toJSON() });
 }
-
-/* ---------- public API ---------- */
 
 /**
  * "unsupported" | "ios-needs-install" | "denied" | "enabled" | "disabled"
